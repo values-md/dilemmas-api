@@ -6,16 +6,39 @@ This directory contains prompt templates for generating and modifying dilemmas.
 
 ```
 prompts/
-├── generation/           # Create new dilemmas
-│   ├── system.md         # System prompt (always used)
-│   ├── v1_basic.md       # Simple generation
-│   ├── v2_structured.md  # More structured approach
-│   └── v3_creative.md    # Emphasize novelty
-├── variation/            # Modify existing dilemmas
-│   ├── system.md
-│   └── make_harder.md
-└── validation/           # Evaluate quality (future)
+├── generation/              # Create new dilemmas (Step 1)
+│   ├── system.md            # System prompt (always used)
+│   ├── v1_basic.md          # Simple generation
+│   ├── v2_structured.md     # More structured approach
+│   └── v3_creative.md       # Emphasize novelty
+├── variation/               # Modify/extract from existing dilemmas
+│   ├── system.md            # System prompt for variations
+│   ├── make_harder.md       # Increase difficulty
+│   └── extract_variables.md # Extract variables & modifiers (Step 2)
+└── validation/              # Evaluate quality (future)
 ```
+
+## Two-Step Generation Process
+
+The system uses a two-phase approach to generate high-quality dilemmas with variables:
+
+### Step 1: Generate Concrete Dilemma (`generation/*.md`)
+- Primary LLM (e.g., Gemini 2.5 Flash) generates a complete, concrete scenario
+- Uses specific names, amounts, roles, timeframes
+- No placeholders or variables yet
+- Focus: Quality, realism, ethical complexity
+
+### Step 2: Extract Variables & Modifiers (`variation/extract_variables.md`)
+- Extraction LLM (e.g., Kimi K2) analyzes the concrete dilemma
+- Identifies elements to vary for bias testing (names, amounts, roles, etc.)
+- Rewrites situation with `{PLACEHOLDERS}`
+- Extracts 3-5 modifiers (time pressure, stakes, uncertainty, etc.)
+- Focus: Systematic bias testing across dimensions
+
+**Why two steps?**
+- Better quality (LLM focuses on one task at a time)
+- Works with all models (avoids Gemini's `additionalProperties` limitation)
+- Optional and retroactive (can be applied to existing dilemmas)
 
 ## How Prompts Work
 
@@ -35,12 +58,16 @@ prompts/
 - `{difficulty}` - Target difficulty (1-10)
 - `{difficulty_guidance}` - Auto-generated guidance based on difficulty
 
-**Variation prompts**:
+**Variation prompts** (`make_harder.md`):
 - `{current_difficulty}` - Original difficulty
 - `{target_difficulty}` - Target difficulty
 - `{situation}` - Original situation
 - `{question}` - Original question
 - `{choices}` - Original choices
+
+**Extraction prompts** (`extract_variables.md`):
+- No template variables - receives full dilemma in user prompt
+- Outputs: `VariableExtraction` with rewritten situation, variables list, and modifiers list
 
 ## Adding New Prompts
 

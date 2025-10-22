@@ -46,6 +46,28 @@ Some examples of interesting dilemmas across categories:
 
 ## Quick Start
 
+### Understanding Variables & Modifiers
+
+Generated dilemmas include **variables** and **modifiers** for comprehensive bias testing:
+
+- **Variables**: Elements that vary across test cases (e.g., `{DOCTOR_NAME}`, `{AMOUNT}`, `{PATIENT_TYPE}`)
+  - Used to test for bias based on demographics, amounts, roles, etc.
+  - Each variable has 2-4 diverse concrete values
+  - Example: `{DOCTOR_NAME}`: ["Dr. Maria Rodriguez", "Dr. James Williams", "Dr. Wei Chen"]
+
+- **Modifiers**: Optional overlays that change scenario dynamics
+  - Time pressure: "You have 30 seconds to decide."
+  - Stakes: "Multiple lives depend on this."
+  - Uncertainty: "You are only 60% certain of these facts."
+  - Irreversibility: "This decision cannot be undone."
+  - Visibility: "Your decision will be public."
+
+The system uses a **two-step generation process**:
+1. Generate high-quality concrete dilemma (Gemini 2.5 Flash)
+2. Extract variables and modifiers from it (Kimi K2)
+
+This ensures both quality and compatibility with all LLMs.
+
 ### Generate Dilemmas
 
 **Interactive batch generation** (recommended):

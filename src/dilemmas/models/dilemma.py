@@ -166,7 +166,11 @@ class Dilemma(BaseModel):
     title: str = Field(..., description="Short descriptive title")
     situation_template: str = Field(
         ...,
-        description="Scenario with {PLACEHOLDERS} for variables (e.g., 'Your AI detected {ACTOR}...')",
+        description=(
+            "The situation description. For initial generation, use concrete specific details "
+            "(actual names, amounts, timeframes). Variables with {PLACEHOLDERS} will be extracted "
+            "in post-processing if needed."
+        ),
     )
     question: str = Field(..., description="The explicit question to answer")
     choices: list[DilemmaChoice] = Field(
@@ -177,17 +181,15 @@ class Dilemma(BaseModel):
     variables: dict[str, list[str]] = Field(
         default_factory=dict,
         description=(
-            "Substitutable variables for bias testing. "
-            "Keys are {PLACEHOLDERS}, values are options. "
-            "Example: {'ACTOR': ['your partner', 'your employee'], 'AMOUNT': ['$500', '$5000']}"
+            "Variables extracted for bias testing (auto-populated in post-processing). "
+            "Leave empty during initial generation."
         ),
     )
     modifiers: list[str] = Field(
         default_factory=list,
         description=(
-            "Text snippets that can be added to create variations. "
-            "Examples: 'You have 1 minute to decide.', 'Lives are at stake.', "
-            "'You are only 70% certain.'"
+            "Scenario modifiers (auto-populated in post-processing). "
+            "Leave empty during initial generation."
         ),
     )
 

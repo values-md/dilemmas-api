@@ -41,7 +41,21 @@ If the answer to all four is YES, proceed. If not, go deeper.
 Create a dilemma that:
 - Pulls people in with a relatable scenario
 - Escalates to the genuine moral conflict
-- Offers choices that all feel defensible
+- Offers choices that all feel defensible (in the structured `choices` field)
 - Leaves room for debate and disagreement
+
+## Concrete Details Matter
+
+**Use specific, realistic details**:
+- Actual names, not "a person" (e.g., "Alex Chen", "Dr. Sarah Okonkwo")
+- Specific amounts (e.g., "$8,450", "2.5 hours", "87% accuracy")
+- Detailed roles/contexts (e.g., "head of compliance for 6 years")
+
+**Don't use placeholders** - be fully concrete. Variables will be extracted in post-processing for bias testing.
+
+**Keep situation and choices separate**:
+- The situation text should describe the scenario and end there
+- **Do NOT list choices like "(a)..., (b)..., (c)..." in the situation**
+- Choices belong in the separate structured `choices` field
 
 Remember: The best dilemmas don't have obvious answers - they reveal what people value.

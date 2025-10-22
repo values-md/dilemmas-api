@@ -232,3 +232,73 @@ uv run python scripts/explore_db.py  # Datasette (SQL queries)
 - **OpenRouter** for model access (over direct API calls)
 - **FastAPI** for API (when needed)
 - Keep it simple, avoid over-abstraction
+
+### 9. Two-Step Generation: Concrete → Variable Extraction
+
+**The Challenge:**
+We need to generate high-quality dilemmas with variables for bias testing (e.g., `{DOCTOR_NAME}`, `{AMOUNT}`) and modifiers for scenario dynamics (time pressure, stakes, uncertainty). However, Gemini doesn't support `additionalProperties` in JSON Schema, which breaks `dict[str, list[str]]` structured output.
+
+**The Solution: Two-Step Generation**
+
+1. **Step 1: Generate Concrete Dilemma** (Primary LLM)
+   - Focus on quality and coherence
+   - Generate a complete, concrete scenario
+   - No variables yet - e.g., "Dr. Maria Rodriguez, a senior cardiologist..."
+   - Model: Gemini 2.5 Flash (temperature 1.0) for creativity
+
+2. **Step 2: Extract Variables & Modifiers** (Extraction LLM)
+   - Analyze the concrete dilemma
+   - Identify elements to vary for bias testing
+   - Rewrite with `{PLACEHOLDERS}`
+   - Extract 3-5 modifiers for scenario dynamics
+   - Model: Kimi K2 (temperature 0.3) for consistency
+   - Uses `list[Variable]` instead of dict (Gemini-compatible)
+
+**Benefits:**
+- ✓ Works with any model (no schema limitations)
+- ✓ Better quality (LLM focuses on one task at a time)
+- ✓ Optional (toggle via config: `add_variables: true`)
+- ✓ Retroactive (can apply to existing dilemmas)
+- ✓ Flexible (different models for each step)
+
+**Configuration:**
+```yaml
+generation:
+  add_variables: true                     # Enable two-step process
+  variable_model: moonshotai/kimi-k2-0905  # Fast extraction model
+```
+
+**File Organization:**
+- `src/dilemmas/models/extraction.py` - `VariableExtraction` model
+- `prompts/variation/extract_variables.md` - Extraction prompt
+- `src/dilemmas/services/generator.py` - `variablize_dilemma()` method
+
+**Example:**
+```python
+# Step 1: Generate concrete dilemma
+gen = DilemmaGenerator()
+dilemma = await gen.generate_from_seed(seed)
+# situation: "Dr. Maria Rodriguez made an error affecting an elderly patient..."
+
+# Step 2: Extract variables
+dilemma = await gen.variablize_dilemma(dilemma)
+# situation_template: "{DOCTOR_NAME} made an error affecting {PATIENT_TYPE}..."
+# variables: {
+#   "{DOCTOR_NAME}": ["Dr. Maria Rodriguez", "Dr. James Williams", "Dr. Wei Chen"],
+#   "{PATIENT_TYPE}": ["an elderly patient", "a young adult", "a child"]
+# }
+# modifiers: [
+#   "You have 5 minutes to decide.",
+#   "The hospital's accreditation is at stake.",
+#   "Some information may be incomplete."
+# ]
+```
+
+**Variables vs Modifiers:**
+- **Variables**: Elements in the situation that vary (names, amounts, roles)
+  - Used for bias testing (gender, ethnicity, socioeconomic status)
+  - Embedded in situation template with `{PLACEHOLDERS}`
+- **Modifiers**: Optional overlays that change scenario dynamics
+  - Time pressure, stakes, uncertainty, irreversibility, visibility
+  - Appended to situation as separate sentences
+  - Test how contextual factors affect decisions

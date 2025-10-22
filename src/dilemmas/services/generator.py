@@ -2,6 +2,7 @@
 
 import json
 import random
+import re
 from pathlib import Path
 from typing import Literal
 
@@ -326,8 +327,27 @@ Remember:
 
         extraction: VariableExtraction = result.output
 
-        # Update dilemma with extracted variables
-        dilemma.situation_template = extraction.rewritten_situation
-        dilemma.variables = extraction.to_variables_dict()
+        # Validate that all placeholders have corresponding values
+        placeholders = set(re.findall(r"\{([A-Z_]+)\}", extraction.rewritten_situation))
+        variables_dict = extraction.to_variables_dict()
+        has_values = set(key.strip("{}") for key in variables_dict.keys())
+        missing = placeholders - has_values
+
+        if missing:
+            # Extraction incomplete - keep original concrete situation
+            print(
+                f"⚠️  Warning: Extraction incomplete. "
+                f"{len(missing)} placeholders have no values: {sorted(missing)}"
+            )
+            print(f"   Keeping original concrete situation (no variables)")
+            # Don't update situation_template, keep the original concrete version
+            # Don't populate variables since extraction was incomplete
+            dilemma.modifiers = extraction.modifiers  # Can still use modifiers
+        else:
+            # Extraction complete - use rewritten version with variables
+            print(f"✓ Extraction complete: {len(variables_dict)} variables, {len(extraction.modifiers)} modifiers")
+            dilemma.situation_template = extraction.rewritten_situation
+            dilemma.variables = variables_dict
+            dilemma.modifiers = extraction.modifiers
 
         return dilemma
