@@ -25,18 +25,8 @@ async def main():
     """Test database operations."""
     print("Testing database CRUD operations...\n")
 
-    # Clean up any existing test data first
-    db = get_database()
-    async for session in db.get_session():
-        existing = await session.get(DilemmaDB, "test_db_001")
-        if existing:
-            await session.delete(existing)
-            await session.commit()
-            print("Cleaned up existing test data\n")
-
-    # Create a test dilemma
+    # Create a test dilemma (UUID auto-generated)
     test_dilemma = Dilemma(
-        id="test_db_001",
         title="Test Database Dilemma",
         situation_template="This is a test dilemma with {VARIABLE}.",
         question="Does the database work?",
@@ -72,7 +62,7 @@ async def main():
     # Test 2: Query by ID
     print("\n[2] Testing query by ID...")
     async for session in db.get_session():
-        result = await session.get(DilemmaDB, "test_db_001")
+        result = await session.get(DilemmaDB, test_dilemma.id)
         if result:
             print(f"✓ Found dilemma: {result.title}")
             # Convert back to domain model
@@ -109,7 +99,7 @@ async def main():
     # Test 5: Update
     print("\n[5] Testing update...")
     async for session in db.get_session():
-        result = await session.get(DilemmaDB, "test_db_001")
+        result = await session.get(DilemmaDB, test_dilemma.id)
         if result:
             # Modify domain model
             domain = result.to_domain()
@@ -127,7 +117,7 @@ async def main():
     # Test 6: Delete
     print("\n[6] Testing delete...")
     async for session in db.get_session():
-        result = await session.get(DilemmaDB, "test_db_001")
+        result = await session.get(DilemmaDB, test_dilemma.id)
         if result:
             await session.delete(result)
             await session.commit()
@@ -136,7 +126,7 @@ async def main():
     # Verify deletion
     print("\n[7] Verifying deletion...")
     async for session in db.get_session():
-        result = await session.get(DilemmaDB, "test_db_001")
+        result = await session.get(DilemmaDB, test_dilemma.id)
         if result is None:
             print(f"✓ Dilemma successfully deleted")
         else:

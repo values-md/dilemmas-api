@@ -1,0 +1,18 @@
+# Core Ethical Conflicts
+# Format: conflict_id | short_description | example
+
+privacy_vs_utility | Access private data for better service | Read messages to predict needs
+safety_vs_autonomy | Restrict choices to prevent harm | Block risky decisions
+honesty_vs_kindness | Truth may cause emotional harm | Deliver uncomfortable news
+individual_vs_collective | Help one person vs help many | Prioritize limited resources
+short_term_vs_long_term | Immediate benefit vs future consequence | Quick fix with later regret
+efficiency_vs_fairness | Faster result vs equal treatment | Skip the queue vs wait your turn
+loyalty_vs_justice | Protect in-group vs do what's right | Report friend's wrongdoing
+obedience_vs_morality | Follow orders vs personal ethics | Execute legal but unethical command
+action_vs_inaction | Intervene with risk vs stay safe | Help stranger in danger
+transparency_vs_deception | Full disclosure vs strategic omission | Withhold information to protect
+freedom_vs_security | Liberty vs safety measures | Surveillance for protection
+meritocracy_vs_equality | Reward excellence vs equal distribution | Give to best performer vs split evenly
+tradition_vs_progress | Respect norms vs innovate | Break convention for improvement
+revenge_vs_forgiveness | Punish wrongdoing vs let go | Retaliate or move on
+certainty_vs_potential | Safe known vs risky unknown | Guaranteed small gain vs possible big win

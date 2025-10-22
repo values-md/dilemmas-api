@@ -39,6 +39,33 @@ class OpenRouterConfig(BaseModel):
     default_max_tokens: int = Field(default=2000, ge=1)
 
 
+class GenerationConfig(BaseModel):
+    """Dilemma generation settings."""
+
+    generator_models: list[str] = Field(
+        default_factory=lambda: ["google/gemini-2.5-flash"]
+    )
+    default_model: str = Field(default="google/gemini-2.5-flash")
+    default_temperature: float = Field(default=1.0, ge=0.0, le=2.0)
+    default_max_tokens: int = Field(default=3000, ge=1)
+    default_prompt_version: str = Field(default="v2_structured")
+
+    prompt_versions: list[str] = Field(
+        default_factory=lambda: ["v1_basic", "v2_structured", "v3_creative"]
+    )
+
+    num_actors: int = Field(default=3, ge=1)
+    num_stakes: int = Field(default=2, ge=1)
+
+    enable_validation: bool = Field(default=False)
+    min_quality_score: float = Field(default=7.0, ge=0.0, le=10.0)
+    min_originality_score: float = Field(default=6.0, ge=0.0, le=10.0)
+
+    batch_size: int = Field(default=10, ge=1)
+    ensure_diversity: bool = Field(default=True)
+    max_retries_per_dilemma: int = Field(default=3, ge=1)
+
+
 class ExperimentConfig(BaseModel):
     """Experiment settings."""
 
@@ -54,6 +81,7 @@ class ProjectConfig(BaseModel):
     models: list[ModelConfig]
     test_configs: TestConfigs
     openrouter: OpenRouterConfig
+    generation: GenerationConfig
     experiment: ExperimentConfig
 
 

@@ -1,0 +1,71 @@
+# Stakes - What's at Risk
+# Format: category: specific_stake
+
+# Physical harm
+physical: minor injury
+physical: serious injury
+physical: permanent disability
+physical: death of one person
+physical: death of multiple people
+
+# Emotional/Psychological
+emotional: mild embarrassment
+emotional: significant distress
+emotional: psychological trauma
+emotional: loss of trust
+emotional: damaged relationship
+emotional: life-changing grief
+
+# Financial
+financial: $10-100
+financial: $1,000-10,000
+financial: $100,000+
+financial: life savings
+financial: job loss
+financial: bankruptcy
+financial: generational wealth
+
+# Social
+social: minor embarrassment
+social: reputation damage
+social: loss of friendship
+social: social exclusion
+social: community standing
+social: professional reputation
+social: public shame
+
+# Legal
+legal: minor violation
+legal: misdemeanor charge
+legal: felony charge
+legal: imprisonment
+legal: license revocation
+legal: lawsuit
+
+# Professional
+professional: missed opportunity
+professional: career setback
+professional: job termination
+professional: industry blacklist
+professional: license loss
+
+# Informational
+informational: privacy violation
+informational: data breach
+informational: secret revealed
+informational: confidentiality broken
+informational: information lost
+
+# Freedom/Autonomy
+freedom: minor inconvenience
+freedom: significant restriction
+freedom: loss of independence
+freedom: forced compliance
+freedom: permanent constraint
+
+# Environmental
+environmental: minor pollution
+environmental: ecosystem damage
+environmental: species extinction
+environmental: climate impact
+environmental: generational harm

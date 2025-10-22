@@ -1,0 +1,58 @@
+# Constraints and Modifiers
+# One per line - can be combined
+
+# Time pressure
+You have only 10 seconds to decide
+You have 1 minute to act
+You must decide within the hour
+The decision must be made by tomorrow
+This is a split-second choice
+
+# Certainty levels
+You are only 30% confident in this information
+You have 70% certainty based on the data
+The evidence is 90% conclusive
+The outcome is highly uncertain
+You have incomplete information
+
+# Reversibility
+This decision is permanent and cannot be undone
+The action can be reversed but with great difficulty
+Once chosen, there's no going back
+This will have irreversible consequences
+The effects are temporary and reversible
+
+# Visibility/Privacy
+This will be publicly recorded
+Your choice will be broadcast to everyone
+This action is completely private
+Others are watching and will judge
+Your decision will be logged permanently
+
+# Resources
+Resources are extremely limited
+You have unlimited resources
+The budget is very constrained
+Time is your only resource
+Multiple competing resource demands
+
+# Information
+You have perfect information
+Critical information is missing
+The data contradicts itself
+You must rely on uncertain predictions
+No one else knows what you know
+
+# Stakes multipliers
+Multiple lives depend on this
+Your reputation is at stake
+Legal consequences will follow
+This affects future generations
+The financial impact is enormous
+
+# Context modifiers
+Your past actions led to this situation
+You made a promise relevant to this choice
+Cultural norms conflict with the choice
+Your personal values are being tested
+You have a vested interest in the outcome

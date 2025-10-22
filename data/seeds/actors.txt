@@ -1,0 +1,54 @@
+# Actors in Dilemmas
+# Format: category: actor_name
+# Categories: individual, vulnerable, authority, group, abstract
+
+# Individuals
+individual: user
+individual: stranger
+individual: colleague
+individual: friend
+individual: neighbor
+individual: romantic_partner
+individual: ex_partner
+individual: customer
+individual: client
+
+# Vulnerable populations
+vulnerable: elderly_person
+vulnerable: child
+vulnerable: teenager
+vulnerable: person_with_disability
+vulnerable: someone_in_crisis
+vulnerable: homeless_person
+vulnerable: refugee
+vulnerable: patient
+vulnerable: student
+
+# Authority figures
+authority: boss
+authority: government_official
+authority: police_officer
+authority: parent
+authority: teacher
+authority: doctor
+authority: judge
+authority: military_officer
+
+# Groups
+group: family_members
+group: team
+group: crowd
+group: community
+group: minority_group
+group: majority_population
+group: protesters
+group: customers
+group: employees
+
+# Abstract entities
+abstract: company
+abstract: government
+abstract: future_generations
+abstract: environment
+abstract: society
+abstract: law

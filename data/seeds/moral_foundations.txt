@@ -1,0 +1,9 @@
+# Moral Foundations (based on Haidt's Moral Foundations Theory)
+# One per line
+
+care_vs_harm
+fairness_vs_cheating
+loyalty_vs_betrayal
+authority_vs_subversion
+sanctity_vs_degradation
+liberty_vs_oppression

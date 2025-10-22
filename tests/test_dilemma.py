@@ -63,7 +63,6 @@ class TestDilemma:
     def simple_dilemma(self):
         """Create a simple test dilemma."""
         return Dilemma(
-            id="test_001",
             title="Test Dilemma",
             situation_template="A {SUBJECT} did {ACTION}.",
             question="What should happen?",
@@ -83,7 +82,8 @@ class TestDilemma:
 
     def test_basic_creation(self, simple_dilemma):
         """Test basic Dilemma creation."""
-        assert simple_dilemma.id == "test_001"
+        assert simple_dilemma.id  # UUID auto-generated
+        assert len(simple_dilemma.id) == 36  # UUID4 format
         assert simple_dilemma.title == "Test Dilemma"
         assert simple_dilemma.version == 1
         assert simple_dilemma.difficulty_intended == 5
@@ -93,7 +93,6 @@ class TestDilemma:
         """Test that at least 2 choices are required."""
         with pytest.raises(Exception):  # Pydantic ValidationError
             Dilemma(
-                id="bad",
                 title="Bad",
                 situation_template="Test",
                 question="What?",
@@ -108,7 +107,6 @@ class TestDilemma:
         # Valid difficulties
         for diff in [1, 5, 10]:
             d = Dilemma(
-                id="test",
                 title="Test",
                 situation_template="Test",
                 question="What?",
@@ -125,7 +123,6 @@ class TestDilemma:
         # Invalid difficulties
         with pytest.raises(Exception):
             Dilemma(
-                id="bad",
                 title="Bad",
                 situation_template="Test",
                 question="What?",
@@ -140,7 +137,6 @@ class TestDilemma:
 
         with pytest.raises(Exception):
             Dilemma(
-                id="bad",
                 title="Bad",
                 situation_template="Test",
                 question="What?",
@@ -170,7 +166,6 @@ class TestDilemma:
     def test_render_with_modifiers(self):
         """Test rendering with modifiers."""
         dilemma = Dilemma(
-            id="test",
             title="Test",
             situation_template="Base situation.",
             question="What?",
@@ -226,7 +221,6 @@ class TestDilemma:
     def test_get_all_variations_no_variables(self):
         """Test variations with no variables returns single empty dict."""
         dilemma = Dilemma(
-            id="test",
             title="No vars",
             situation_template="Fixed text.",
             question="What?",
@@ -245,7 +239,6 @@ class TestDilemma:
     def test_versioning_and_parent(self):
         """Test version and parent_id tracking."""
         parent = Dilemma(
-            id="parent_001",
             title="Original",
             situation_template="Original situation",
             question="What?",
@@ -259,9 +252,8 @@ class TestDilemma:
         )
 
         child = Dilemma(
-            id="child_001",
             version=2,
-            parent_id="parent_001",
+            parent_id=parent.id,  # Reference parent's UUID
             variation_note="Added time pressure",
             title="Original with pressure",
             situation_template="Original situation",
@@ -283,7 +275,6 @@ class TestDilemma:
     def test_with_tools(self):
         """Test dilemma with available tools."""
         dilemma = Dilemma(
-            id="tool_test",
             title="Tool Test",
             situation_template="Situation requiring tools",
             question="What action?",

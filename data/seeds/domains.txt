@@ -1,0 +1,23 @@
+# AI System Domains
+# One per line - easy to extend
+
+autonomous_vehicle
+medical_ai
+personal_assistant
+content_moderation
+hiring_system
+financial_advisor
+home_robot
+educational_tutor
+security_system
+dating_app
+social_media_algorithm
+delivery_robot
+customer_service_bot
+legal_assistant
+translation_service
+news_aggregator
+voice_assistant
+smart_home_controller
+fitness_tracker
+therapy_chatbot

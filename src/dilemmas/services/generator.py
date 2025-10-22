@@ -1,0 +1,242 @@
+"""Dilemma generation service using seed-based approach with LLMs."""
+
+import json
+import random
+from typing import Literal
+
+from pydantic_ai import Agent
+
+from dilemmas.llm.openrouter import create_openrouter_model
+from dilemmas.models.config import get_config
+from dilemmas.models.dilemma import Dilemma
+from dilemmas.services.prompts import get_prompt_library
+from dilemmas.services.seeds import DilemmaSeed, generate_random_seed, get_seed_library
+
+
+class DilemmaGenerator:
+    """Generate ethical dilemmas using seed-based approach.
+
+    Uses a two-phase approach:
+    1. Sample random components from seed library
+    2. Use LLM with structured output to synthesize coherent dilemma
+
+    This ensures diversity and avoids clichéd scenarios.
+    """
+
+    def __init__(
+        self,
+        model_id: str | None = None,
+        temperature: float | None = None,
+        prompt_version: str | None = None,
+    ):
+        """Initialize generator.
+
+        Args:
+            model_id: Model to use. If None, uses config default.
+            temperature: Temperature override. If None, uses config default.
+            prompt_version: Prompt version to use. If None, uses config default.
+        """
+        self.config = get_config()
+        self.seed_library = get_seed_library()
+        self.prompt_library = get_prompt_library()
+
+        # Set defaults from config
+        self.model_id = model_id or self.config.generation.default_model
+        self.temperature = temperature or self.config.generation.default_temperature
+        self.prompt_version = (
+            prompt_version or self.config.generation.default_prompt_version
+        )
+
+        # Create agent with structured output
+        self.agent = Agent(
+            create_openrouter_model(self.model_id, self.temperature),
+            output_type=Dilemma,
+        )
+
+    async def generate_from_seed(self, seed: DilemmaSeed) -> Dilemma:
+        """Generate a dilemma from seed components.
+
+        Args:
+            seed: Seed components to use
+
+        Returns:
+            Generated Dilemma
+        """
+        # Build prompts with seed components
+        system_prompt, user_prompt = self.prompt_library.build_generation_prompt(
+            version=self.prompt_version,
+            domain=seed.domain,
+            actors=seed.actors,
+            conflict=seed.conflict.description,
+            stakes=[f"{s.category}: {s.specific}" for s in seed.stakes],
+            moral_foundation=seed.moral_foundation,
+            constraints=seed.constraints,
+            difficulty=seed.difficulty_target,
+        )
+
+        # Run agent with custom system prompt
+        result = await self.agent.run(user_prompt, message_history=[], model_settings={"system": system_prompt})
+
+        # Add generation metadata
+        dilemma = result.output
+        dilemma.is_llm_generated = True
+        dilemma.generator_model = self.model_id
+        dilemma.generator_prompt_version = self.prompt_version
+        dilemma.seed_components = {
+            "domain": seed.domain,
+            "actors": seed.actors,
+            "conflict": seed.conflict.id,
+            "stakes": [f"{s.category}: {s.specific}" for s in seed.stakes],
+            "moral_foundation": seed.moral_foundation,
+            "constraints": seed.constraints,
+        }
+        dilemma.generator_settings = {
+            "temperature": self.temperature,
+            "model": self.model_id,
+            "prompt_version": self.prompt_version,
+        }
+
+        return dilemma
+
+    async def generate_random(
+        self,
+        difficulty: int,
+        num_actors: int | None = None,
+        num_stakes: int | None = None,
+    ) -> Dilemma:
+        """Generate a random dilemma at target difficulty.
+
+        Args:
+            difficulty: Target difficulty (1-10)
+            num_actors: Number of actors. If None, uses config default.
+            num_stakes: Number of stakes. If None, uses config default.
+
+        Returns:
+            Generated Dilemma
+        """
+        # Use config defaults if not specified
+        if num_actors is None:
+            num_actors = self.config.generation.num_actors
+        if num_stakes is None:
+            num_stakes = self.config.generation.num_stakes
+
+        # Generate random seed
+        seed = generate_random_seed(
+            library=self.seed_library,
+            difficulty=difficulty,
+            num_actors=num_actors,
+            num_stakes=num_stakes,
+        )
+
+        # Generate dilemma
+        return await self.generate_from_seed(seed)
+
+    async def generate_batch(
+        self,
+        count: int,
+        difficulty_range: tuple[int, int] = (1, 10),
+        ensure_diversity: bool | None = None,
+    ) -> list[Dilemma]:
+        """Generate multiple dilemmas.
+
+        Args:
+            count: Number of dilemmas to generate
+            difficulty_range: (min, max) difficulty range
+            ensure_diversity: If True, ensures variety in domains/conflicts.
+                             If None, uses config default.
+
+        Returns:
+            List of generated Dilemmas
+        """
+        if ensure_diversity is None:
+            ensure_diversity = self.config.generation.ensure_diversity
+
+        dilemmas = []
+
+        for i in range(count):
+            # Pick random difficulty in range
+            difficulty = random.randint(difficulty_range[0], difficulty_range[1])
+
+            # If ensuring diversity, try to avoid repeating domains/conflicts
+            # (simple version - could be more sophisticated)
+            max_retries = 5 if ensure_diversity else 1
+
+            for attempt in range(max_retries):
+                seed = generate_random_seed(
+                    library=self.seed_library,
+                    difficulty=difficulty,
+                )
+
+                # Check if we already used this domain/conflict combo
+                if ensure_diversity:
+                    used_combos = {
+                        (d.seed_components.get("domain"), d.seed_components.get("conflict"))
+                        for d in dilemmas
+                        if d.seed_components
+                    }
+                    current_combo = (seed.domain, seed.conflict.id)
+
+                    if current_combo in used_combos and attempt < max_retries - 1:
+                        continue  # Try again
+
+                # Generate
+                dilemma = await self.generate_from_seed(seed)
+                dilemmas.append(dilemma)
+                break
+
+        return dilemmas
+
+    async def create_variation(
+        self,
+        parent: Dilemma,
+        modification: Literal["harder", "swap_actor", "add_constraint", "change_stakes"],
+        target_difficulty: int | None = None,
+    ) -> Dilemma:
+        """Create a variation of an existing dilemma.
+
+        Args:
+            parent: Parent dilemma to modify
+            modification: Type of modification to apply
+            target_difficulty: Target difficulty for variation. If None, auto-calculated.
+
+        Returns:
+            New Dilemma that is a variation of the parent
+        """
+        # For now, only implement "harder" - others can be added later
+        if modification != "harder":
+            raise NotImplementedError(f"Modification type '{modification}' not yet implemented")
+
+        # Auto-calculate target difficulty if not specified
+        if target_difficulty is None:
+            target_difficulty = min(parent.difficulty_intended + 2, 10)
+
+        # Load variation prompt
+        system_prompt, user_template = self.prompt_library.load_variation_prompt("make_harder")
+
+        # Fill template
+        user_prompt = user_template.format(
+            current_difficulty=parent.difficulty_intended,
+            target_difficulty=target_difficulty,
+            situation=parent.situation_template,
+            question=parent.question,
+            choices=json.dumps([c.model_dump() for c in parent.choices], indent=2),
+        )
+
+        # Run agent
+        result = await self.agent.run(user_prompt, message_history=[], model_settings={"system": system_prompt})
+
+        # Add metadata linking to parent
+        dilemma = result.output
+        dilemma.parent_id = parent.id
+        dilemma.version = parent.version + 1
+        dilemma.is_llm_generated = True
+        dilemma.generator_model = self.model_id
+        dilemma.generator_prompt_version = f"variation_{modification}"
+        dilemma.generator_settings = {
+            "temperature": self.temperature,
+            "model": self.model_id,
+            "modification": modification,
+            "parent_id": parent.id,
+        }
+
+        return dilemma
