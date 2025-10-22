@@ -1,0 +1,65 @@
+# LLM Configuration for Dilemmas Project
+
+# OpenRouter Models to Test
+models:
+  - id: moonshotai/kimi-k2-0905
+    name: Kimi K2
+    provider: openrouter
+    default_temperature: 1.0
+    supports_reasoning: false
+
+  - id: x-ai/grok-4-fast
+    name: Grok 4 Fast
+    provider: openrouter
+    default_temperature: 1.0
+    supports_reasoning: false
+
+  - id: openai/gpt-4.1-mini
+    name: GPT-4.1 Mini
+    provider: openrouter
+    default_temperature: 1.0
+    supports_reasoning: false
+
+  - id: anthropic/claude-sonnet-4.5
+    name: Claude Sonnet 4.5
+    provider: openrouter
+    default_temperature: 1.0
+    supports_reasoning: true
+
+  - id: google/gemini-2.5-flash
+    name: Gemini 2.5 Flash
+    provider: openrouter
+    default_temperature: 1.0
+    supports_reasoning: true
+
+# Test Configurations
+test_configs:
+  # Temperature variations
+  temperatures:
+    - 0.0   # Deterministic
+    - 0.7   # Balanced
+    - 1.0   # Default
+    - 1.5   # Creative
+
+  # Modes
+  modes:
+    - theory    # Theoretical reasoning about the dilemma
+    - action    # Believes it's real, calls tools
+
+  # Time constraints
+  time_constraints:
+    - none      # No time pressure
+    - moderate  # Some urgency mentioned
+    - critical  # Immediate decision required
+
+# OpenRouter Configuration
+openrouter:
+  base_url: https://openrouter.ai/api/v1
+  default_max_tokens: 2000
+
+# Experiment Settings
+experiment:
+  dilemmas_per_test: 50
+  repetitions: 3  # Run each config N times for consistency
+  save_full_responses: true
+  save_reasoning_traces: true
