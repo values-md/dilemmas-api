@@ -1,4 +1,4 @@
-1. Set up infrastructure with pydantic AI to be able to run various LLMs via openrouter with different settings and tools
++ 1. Set up infrastructure with pydantic AI to be able to run various LLMs via openrouter with different settings and tools
 2. Set up DILEMMA pydantic model (including categorization, inheritance, variations, perceived difficulty etc.). various modifiers: biases, time constraints etc.
 3. Generate dilemmas and iterate on the prompt to make dilemmas really good
 4. Create a set of ~50 dilemmas as a standard test #1

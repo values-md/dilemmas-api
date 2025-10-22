@@ -14,7 +14,11 @@ dilemmas/
 │       │   ├── __init__.py
 │       │   ├── dilemma.py       # Dilemma data model
 │       │   ├── judgement.py     # Judgement/decision data model
-│       │   └── config.py        # LLM config, test config
+│       │   ├── config.py        # LLM config, test config
+│       │   └── db.py            # SQLModel database models
+│       ├── db/                  # Database layer
+│       │   ├── __init__.py
+│       │   └── database.py      # Connection, session management
 │       ├── services/            # Business logic layer
 │       │   ├── __init__.py
 │       │   ├── generator.py     # Dilemma generation service
@@ -40,6 +44,8 @@ dilemmas/
 │   ├── dilemmas/                # Generated dilemma sets
 │   └── results/                 # Test results & analysis
 ├── scripts/                     # Integration tests & experiments
+│   ├── init_db.py               # Initialize database schema
+│   ├── test_db.py               # Test database CRUD operations
 │   ├── test_openrouter.py       # Test real OpenRouter connectivity
 │   ├── generate_dilemmas.py     # Generate dilemma dataset
 │   ├── run_experiments.py       # Run LLM experiments
@@ -105,12 +111,44 @@ This is a **research project**, not production software. We balance proper testi
 - ✗ Heavy mocking of internal code
 - ✗ Tests for exploratory/research code
 
-### 6. Data Preservation
+### 6. Database & Persistence
+**SQLModel + JSON Hybrid Approach**
+
+We use SQLModel (built on SQLAlchemy 2.0) with a JSON hybrid pattern:
+- **Domain models** (Pydantic): Rich validation, business logic (e.g., `Dilemma`)
+- **DB models** (SQLModel): Thin persistence layer (e.g., `DilemmaDB`)
+- **JSON storage**: Complex nested objects stored as JSON in TEXT columns
+- **Indexed fields**: Key fields (id, tags, difficulty, created_by) indexed for queries
+
+**Why this approach:**
+- Keep Pydantic models for validation
+- Easy querying/filtering on indexed fields
+- Simple database schema
+- **Database agnostic**: Switch SQLite → Postgres → D1 with just connection string
+- No ORM impedance mismatch for complex nested data
+
+**Pattern:**
+```python
+# Save
+db_model = DilemmaDB.from_domain(dilemma)
+session.add(db_model)
+
+# Load
+db_model = await session.get(DilemmaDB, id)
+dilemma = db_model.to_domain()
+```
+
+**Database location:**
+- Development: `data/dilemmas.db` (SQLite)
+- Production: Postgres on Neon or Cloudflare D1
+- Initialize: `uv run python scripts/init_db.py`
+
+### 7. Data Preservation
 - Save all generated dilemmas with metadata
 - Log all judgements with full context
 - Results should be reproducible and analyzable
 
-### 7. Progressive Enhancement
+### 8. Progressive Enhancement
 - Start simple: models → services → agents
 - Add FastAPI layer only when needed
 - Don't build what we don't need yet
@@ -128,6 +166,33 @@ DEFAULT_TEMPERATURE=1.0
 3. Integrate LLMs via pydantic-ai
 4. Create test scripts
 5. Add API layer when frontend is needed
+
+## Common Tasks
+
+**Run Tests:**
+```bash
+uv run pytest                    # All unit tests
+uv run pytest -v                 # Verbose output
+uv run pytest tests/test_dilemma.py  # Specific test file
+```
+
+**Database Operations:**
+```bash
+uv run python scripts/init_db.py     # Initialize database schema
+uv run python scripts/test_db.py     # Test CRUD operations
+uv run python scripts/explore_db.py  # Launch Datasette web UI
+```
+
+**Integration Tests:**
+```bash
+uv run python scripts/test_openrouter.py  # Test OpenRouter connectivity
+```
+
+**Explore Database:**
+- `uv run python scripts/explore_db.py` launches Datasette
+- Opens at http://localhost:8001
+- Beautiful web UI for browsing dilemmas, judgements, and results
+- Great for viewing JSON data in the `data` column
 
 ## Key Design Decisions
 - **Python 3.12+** for modern type hints

@@ -9,4 +9,13 @@ wheels/
 # Virtual environments
 .venv
 
+# Environment variables
 .env
+
+# Database files
+*.db
+*.db-shm
+*.db-wal
+data/*.db
+data/*.db-shm
+data/*.db-wal
