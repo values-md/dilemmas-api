@@ -43,3 +43,52 @@ Some examples of interesting dilemmas across categories:
 2. Generate a good set of dilemmas that humans will find interesting and challenging and will have a variety of answers to.
 
 3. Test if different LLMs perform (choose) differently depending on: LLM model, temperature and other macro settings, system prompts, tool availability, reasoning on/off, time constraint on/off, action or theoretical mode of operation etc.
+
+## Quick Start
+
+### Generate Dilemmas
+
+**Interactive batch generation** (recommended):
+```bash
+uv run python scripts/generate_batch_interactive.py
+```
+
+This will guide you through:
+- Selecting how many dilemmas to generate
+- Choosing which prompt versions to use (multi-select)
+- Choosing which LLM models to use (multi-select)
+- Setting difficulty range (1-10)
+
+Features:
+- Real-time progress display with progress bars
+- Incremental saving with visual confirmation
+- Random selection from your chosen prompts/models for each dilemma
+- Diversity checking to avoid repeated domain/conflict combinations
+
+**Generate single dilemma**:
+```bash
+uv run python scripts/generate_dilemma.py --difficulty 7 --save
+```
+
+**Explore the database**:
+```bash
+uv run python scripts/explore_db.py
+```
+Then visit http://localhost:8001/dilemmas/dilemmas
+
+**Clear the database** (start over):
+```bash
+uv run python scripts/clear_db.py
+```
+
+### Test Database Operations
+
+```bash
+uv run python scripts/test_db.py
+```
+
+### Run Tests
+
+```bash
+uv run pytest tests/
+```

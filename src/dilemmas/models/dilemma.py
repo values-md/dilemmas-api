@@ -244,8 +244,9 @@ class Dilemma(BaseModel):
         description="When this dilemma was created",
     )
     created_by: str = Field(
-        ...,
+        default="llm",
         description="Who/what created this: 'human' or model ID (e.g., 'gpt-4')",
+        json_schema_extra={"exclude": True},
     )
     source: str | None = Field(
         None, description="Source of dilemma (e.g., 'manual', 'generated', 'literature')"

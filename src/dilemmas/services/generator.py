@@ -79,6 +79,7 @@ class DilemmaGenerator:
 
         # Add generation metadata
         dilemma = result.output
+        dilemma.created_by = self.model_id  # Set to actual model ID used
         dilemma.is_llm_generated = True
         dilemma.generator_model = self.model_id
         dilemma.generator_prompt_version = self.prompt_version
@@ -227,6 +228,7 @@ class DilemmaGenerator:
 
         # Add metadata linking to parent
         dilemma = result.output
+        dilemma.created_by = self.model_id  # Set to actual model ID used
         dilemma.parent_id = parent.id
         dilemma.version = parent.version + 1
         dilemma.is_llm_generated = True
