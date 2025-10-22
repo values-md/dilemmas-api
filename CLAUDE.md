@@ -30,10 +30,13 @@ dilemmas/
 │       ├── tools/               # Tools for agents (action mode)
 │       │   ├── __init__.py
 │       │   └── actions.py       # Mock actions for dilemmas
-│       └── api/                 # FastAPI app (add later)
+│       └── api/                 # FastAPI app
 │           ├── __init__.py
-│           ├── main.py          # FastAPI app
-│           └── routes.py        # API routes
+│           ├── app.py           # FastAPI app
+│           └── templates/       # Jinja2 HTML templates
+│               ├── base.html
+│               ├── index.html   # List all dilemmas
+│               └── dilemma.html # View single dilemma
 ├── tests/                       # Unit tests (pytest)
 │   ├── __init__.py
 │   ├── test_config.py           # Config loading tests
@@ -143,7 +146,32 @@ dilemma = db_model.to_domain()
 - Production: Postgres on Neon or Cloudflare D1
 - Initialize: `uv run python scripts/init_db.py`
 
-### 7. Data Preservation
+### 7. FastAPI Web Interface
+
+We have a FastAPI web app for exploring dilemmas with a clean HTML interface:
+
+**Features:**
+- List all dilemmas with metadata, tags, difficulty
+- View individual dilemmas with all details, choices, variables
+- Clean, responsive HTML interface (better UX than Datasette for browsing)
+- JSON API endpoints for programmatic access
+
+**Routes:**
+- `GET /` - HTML page listing all dilemmas
+- `GET /dilemma/{id}` - HTML page showing single dilemma
+- `GET /api/dilemmas` - JSON list of all dilemmas
+- `GET /api/dilemma/{id}` - JSON single dilemma
+
+**Start the server:**
+```bash
+uv run python scripts/serve.py  # Visit http://localhost:8000
+```
+
+**When to use what:**
+- **FastAPI** (`serve.py`): Human-friendly browsing, clean UI, click through dilemmas
+- **Datasette** (`explore_db.py`): SQL queries, data analysis, JSON inspection
+
+### 8. Data Preservation
 - Save all generated dilemmas with metadata
 - Log all judgements with full context
 - Results should be reproducible and analyzable
@@ -188,11 +216,14 @@ uv run python scripts/explore_db.py  # Launch Datasette web UI
 uv run python scripts/test_openrouter.py  # Test OpenRouter connectivity
 ```
 
-**Explore Database:**
-- `uv run python scripts/explore_db.py` launches Datasette
-- Opens at http://localhost:8001
-- Beautiful web UI for browsing dilemmas, judgements, and results
-- Great for viewing JSON data in the `data` column
+**Explore Dilemmas:**
+```bash
+uv run python scripts/serve.py       # FastAPI web UI (recommended)
+# Opens at http://localhost:8000 - clean interface for browsing dilemmas
+
+uv run python scripts/explore_db.py  # Datasette (SQL queries)
+# Opens at http://localhost:8001 - great for JSON inspection and SQL
+```
 
 ## Key Design Decisions
 - **Python 3.12+** for modern type hints

@@ -70,7 +70,13 @@ Features:
 uv run python scripts/generate_dilemma.py --difficulty 7 --save
 ```
 
-**Explore the database**:
+**Explore dilemmas** (recommended - clean HTML interface):
+```bash
+uv run python scripts/serve.py
+```
+Then visit http://localhost:8000
+
+**Explore database** (Datasette - SQL interface):
 ```bash
 uv run python scripts/explore_db.py
 ```

@@ -65,6 +65,16 @@ class GenerationConfig(BaseModel):
     ensure_diversity: bool = Field(default=True)
     max_retries_per_dilemma: int = Field(default=3, ge=1)
 
+    # Variable extraction settings (two-step generation)
+    add_variables: bool = Field(
+        default=True,
+        description="Extract variables for bias testing after generation",
+    )
+    variable_model: str | None = Field(
+        default="moonshotai/kimi-k2-0905",
+        description="Model to use for variable extraction. Fast model recommended. None = use generator model.",
+    )
+
 
 class ExperimentConfig(BaseModel):
     """Experiment settings."""

@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+
+{% block title %}{{ dilemma.title }} - VALUES.md{% endblock %}
+
+{% block content %}
+<a href="/" class="back-link">← Back to all dilemmas</a>
+
+<div class="card">
+    <h1>{{ dilemma.title }}</h1>
+
+    <div style="margin: 15px 0;">
+        <span class="badge badge-difficulty">
+            Difficulty {{ dilemma.difficulty_intended }}/10
+        </span>
+        {% if dilemma.seed_components and dilemma.seed_components.domain %}
+        <span class="badge badge-domain">
+            {{ dilemma.seed_components.domain.replace('_', ' ').title() }}
+        </span>
+        {% endif %}
+        {% if dilemma.seed_components and dilemma.seed_components.conflict %}
+        <span class="badge" style="background: #fce4ec; color: #c2185b;">
+            {{ dilemma.seed_components.conflict.replace('_', ' ').title() }}
+        </span>
+        {% endif %}
+    </div>
+
+    {% if dilemma.tags %}
+    <div style="margin: 10px 0;">
+        {% for tag in dilemma.tags %}
+        <span class="badge badge-tag">{{ tag }}</span>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <h2>Situation</h2>
+    <div class="situation-box">
+        {{ rendered_situation }}
+    </div>
+
+    <h2>Question</h2>
+    <p style="font-size: 1.1em; font-style: italic; color: #555; margin: 15px 0;">
+        {{ dilemma.question }}
+    </p>
+
+    <h2>Choices</h2>
+    <ul class="choice-list">
+        {% for choice in dilemma.choices %}
+        <li class="choice-item">
+            <div class="choice-label">{{ choice.label }}</div>
+            <div class="choice-description">{{ choice.description }}</div>
+            {% if choice.tool_name %}
+            <div style="margin-top: 8px; font-size: 0.9em; color: #666;">
+                🔧 Tool: <code>{{ choice.tool_name }}</code>
+            </div>
+            {% endif %}
+        </li>
+        {% endfor %}
+    </ul>
+
+    {% if dilemma.variables %}
+    <h2>Variables for Testing</h2>
+    <div class="variables-box">
+        {% for var_name, var_values in dilemma.variables.items() %}
+        <div style="margin-bottom: 10px;">
+            <strong><code>{{ var_name }}</code></strong>:
+            {{ var_values|join(', ') }}
+        </div>
+        {% endfor %}
+        <div style="margin-top: 15px; color: #666; font-size: 0.9em;">
+            This dilemma can be rendered with different variable combinations to test for bias.
+        </div>
+    </div>
+    {% endif %}
+
+    {% if dilemma.modifiers %}
+    <h2>Modifiers</h2>
+    <div class="variables-box">
+        <ul style="list-style: none;">
+            {% for modifier in dilemma.modifiers %}
+            <li style="margin-bottom: 8px;">• {{ modifier }}</li>
+            {% endfor %}
+        </ul>
+        <div style="margin-top: 15px; color: #666; font-size: 0.9em;">
+            These can be added to create variations (time pressure, stakes, etc.)
+        </div>
+    </div>
+    {% endif %}
+
+    {% if dilemma.available_tools %}
+    <h2>Available Tools (Action Mode)</h2>
+    <div class="variables-box">
+        {% for tool in dilemma.available_tools %}
+        <div style="margin-bottom: 15px;">
+            <strong><code>{{ tool.name }}</code></strong>
+            <div style="color: #666; margin-top: 5px;">{{ tool.description }}</div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <h2>Action Context</h2>
+    <div class="variables-box">
+        {{ dilemma.action_context }}
+    </div>
+
+    <h2>Metadata</h2>
+    <div class="metadata-box">
+        <div style="margin-bottom: 8px;">
+            <strong>ID:</strong> <code>{{ dilemma.id }}</code>
+        </div>
+        <div style="margin-bottom: 8px;">
+            <strong>Created by:</strong> {{ dilemma.created_by }}
+        </div>
+        <div style="margin-bottom: 8px;">
+            <strong>LLM Generated:</strong> {{ 'Yes' if dilemma.is_llm_generated else 'No' }}
+        </div>
+        {% if dilemma.generator_model %}
+        <div style="margin-bottom: 8px;">
+            <strong>Generator Model:</strong> {{ dilemma.generator_model }}
+        </div>
+        {% endif %}
+        {% if dilemma.generator_prompt_version %}
+        <div style="margin-bottom: 8px;">
+            <strong>Prompt Version:</strong> {{ dilemma.generator_prompt_version }}
+        </div>
+        {% endif %}
+        <div style="margin-bottom: 8px;">
+            <strong>Created at:</strong> {{ dilemma.created_at.strftime('%Y-%m-%d %H:%M:%S UTC') }}
+        </div>
+        {% if dilemma.seed_components %}
+        <div style="margin-top: 15px;">
+            <strong>Seed Components:</strong>
+            <pre style="background: white; padding: 10px; border-radius: 4px; margin-top: 5px; overflow-x: auto;">{{ dilemma.seed_components|tojson(indent=2) }}</pre>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<div style="text-align: center; margin: 40px 0; color: #999;">
+    <a href="/">← Back to all dilemmas</a>
+</div>
+{% endblock %}

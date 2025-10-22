@@ -91,6 +91,10 @@ generation:
   ensure_diversity: true
   max_retries_per_dilemma: 3
 
+  # Variable extraction (two-step generation)
+  add_variables: true  # Extract variables for bias testing
+  variable_model: moonshotai/kimi-k2-0905  # Fast model for extraction
+
 # Experiment Settings
 experiment:
   dilemmas_per_test: 50

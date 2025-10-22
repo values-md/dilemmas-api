@@ -2,6 +2,7 @@
 
 import json
 import random
+from pathlib import Path
 from typing import Literal
 
 from pydantic_ai import Agent
@@ -9,6 +10,7 @@ from pydantic_ai import Agent
 from dilemmas.llm.openrouter import create_openrouter_model
 from dilemmas.models.config import get_config
 from dilemmas.models.dilemma import Dilemma
+from dilemmas.models.extraction import VariableExtraction
 from dilemmas.services.prompts import get_prompt_library
 from dilemmas.services.seeds import DilemmaSeed, generate_random_seed, get_seed_library
 
@@ -104,6 +106,7 @@ class DilemmaGenerator:
         difficulty: int,
         num_actors: int | None = None,
         num_stakes: int | None = None,
+        add_variables: bool | None = None,
     ) -> Dilemma:
         """Generate a random dilemma at target difficulty.
 
@@ -111,6 +114,7 @@ class DilemmaGenerator:
             difficulty: Target difficulty (1-10)
             num_actors: Number of actors. If None, uses config default.
             num_stakes: Number of stakes. If None, uses config default.
+            add_variables: Extract variables for bias testing. If None, uses config default.
 
         Returns:
             Generated Dilemma
@@ -120,6 +124,8 @@ class DilemmaGenerator:
             num_actors = self.config.generation.num_actors
         if num_stakes is None:
             num_stakes = self.config.generation.num_stakes
+        if add_variables is None:
+            add_variables = self.config.generation.add_variables
 
         # Generate random seed
         seed = generate_random_seed(
@@ -130,13 +136,20 @@ class DilemmaGenerator:
         )
 
         # Generate dilemma
-        return await self.generate_from_seed(seed)
+        dilemma = await self.generate_from_seed(seed)
+
+        # Optionally extract variables
+        if add_variables:
+            dilemma = await self.variablize_dilemma(dilemma)
+
+        return dilemma
 
     async def generate_batch(
         self,
         count: int,
         difficulty_range: tuple[int, int] = (1, 10),
         ensure_diversity: bool | None = None,
+        add_variables: bool | None = None,
     ) -> list[Dilemma]:
         """Generate multiple dilemmas.
 
@@ -145,12 +158,15 @@ class DilemmaGenerator:
             difficulty_range: (min, max) difficulty range
             ensure_diversity: If True, ensures variety in domains/conflicts.
                              If None, uses config default.
+            add_variables: Extract variables for bias testing. If None, uses config default.
 
         Returns:
             List of generated Dilemmas
         """
         if ensure_diversity is None:
             ensure_diversity = self.config.generation.ensure_diversity
+        if add_variables is None:
+            add_variables = self.config.generation.add_variables
 
         dilemmas = []
 
@@ -182,6 +198,10 @@ class DilemmaGenerator:
 
                 # Generate
                 dilemma = await self.generate_from_seed(seed)
+
+                # Optionally extract variables
+                if add_variables:
+                    dilemma = await self.variablize_dilemma(dilemma)
                 dilemmas.append(dilemma)
                 break
 
@@ -240,5 +260,74 @@ class DilemmaGenerator:
             "modification": modification,
             "parent_id": parent.id,
         }
+
+        return dilemma
+
+    async def variablize_dilemma(
+        self,
+        dilemma: Dilemma,
+        model_id: str | None = None,
+    ) -> Dilemma:
+        """Add variables to a concrete dilemma for bias testing.
+
+        Takes a dilemma with a concrete situation and extracts variables
+        that can be systematically varied to test for bias. Uses a separate
+        LLM call with structured output.
+
+        Args:
+            dilemma: Dilemma with concrete situation
+            model_id: Model to use for extraction. If None, uses config default.
+
+        Returns:
+            Updated dilemma with situation_template and variables populated
+        """
+        # Use configured variable extraction model or fallback
+        extraction_model = model_id or self.config.generation.variable_model or self.model_id
+
+        # Create agent for variable extraction
+        extraction_agent = Agent(
+            create_openrouter_model(extraction_model, temperature=0.3),  # Lower temp for consistent extraction
+            output_type=VariableExtraction,
+        )
+
+        # Load extraction prompt
+        prompts_dir = Path(__file__).parent.parent.parent.parent / "prompts" / "variation"
+        prompt_path = prompts_dir / "extract_variables.md"
+        system_prompt = prompt_path.read_text()
+
+        # Build user prompt with the current situation
+        user_prompt = f"""# Original Dilemma
+
+**Title:** {dilemma.title}
+
+**Situation:**
+{dilemma.situation_template}
+
+**Question:**
+{dilemma.question}
+
+# Your Task
+
+Analyze this situation and extract variables that should vary for bias testing. Rewrite the situation with placeholders and provide diverse values for each variable.
+
+Remember:
+- Extract 3-6 meaningful variables
+- Each variable should have 2-4 diverse concrete values
+- Values should test different biases (demographics, amounts, roles, etc.)
+- Keep the rewritten situation natural and preserve the ethical tension
+"""
+
+        # Run extraction
+        result = await extraction_agent.run(
+            user_prompt,
+            message_history=[],
+            model_settings={"system": system_prompt},
+        )
+
+        extraction: VariableExtraction = result.output
+
+        # Update dilemma with extracted variables
+        dilemma.situation_template = extraction.rewritten_situation
+        dilemma.variables = extraction.to_variables_dict()
 
         return dilemma
