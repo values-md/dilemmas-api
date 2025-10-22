@@ -1,71 +1,353 @@
 # Stakes - What's at Risk
 # Format: category: specific_stake
 
-# Physical harm
+# Physical harm - Individual
+physical: minor discomfort
+physical: pain
 physical: minor injury
 physical: serious injury
+physical: chronic pain
 physical: permanent disability
+physical: loss of bodily function
+physical: disfigurement
+physical: life-threatening condition
 physical: death of one person
-physical: death of multiple people
+physical: prolonged suffering
 
-# Emotional/Psychological
-emotional: mild embarrassment
+# Physical harm - Collective
+physical: multiple injuries
+physical: mass casualties
+physical: death of multiple people
+physical: community health crisis
+physical: epidemic
+physical: generational health impact
+
+# Emotional/Psychological - Individual
+emotional: mild discomfort
+emotional: embarrassment
+emotional: disappointment
+emotional: anxiety
 emotional: significant distress
+emotional: depression
 emotional: psychological trauma
+emotional: ptsd
 emotional: loss of trust
 emotional: damaged relationship
+emotional: broken bond
 emotional: life-changing grief
+emotional: loss of identity
+emotional: existential crisis
 
-# Financial
+# Emotional/Psychological - Collective
+emotional: community trauma
+emotional: cultural grief
+emotional: collective anxiety
+emotional: social division
+emotional: generational pain
+
+# Financial - Personal
 financial: $10-100
+financial: $100-1,000
 financial: $1,000-10,000
+financial: $10,000-100,000
 financial: $100,000+
+financial: month's income
+financial: year's savings
 financial: life savings
-financial: job loss
+financial: retirement fund
+financial: college fund
+financial: home equity
+financial: inheritance
+financial: debt accumulation
+financial: credit score damage
 financial: bankruptcy
+
+# Financial - Professional/Organizational
+financial: bonus loss
+financial: raise missed
+financial: job loss
+financial: career setback
+financial: business failure
+financial: company bankruptcy
+financial: investor losses
+financial: shareholder value destruction
+financial: market disruption
+financial: economic recession
 financial: generational wealth
 
-# Social
+# Social - Personal
+social: awkward moment
 social: minor embarrassment
+social: social discomfort
 social: reputation damage
+social: loss of respect
 social: loss of friendship
 social: social exclusion
+social: ostracism
 social: community standing
 social: professional reputation
 social: public shame
+social: permanent stigma
+social: family estrangement
+social: cultural isolation
 
-# Legal
+# Social - Collective
+social: community division
+social: group conflict
+social: sectarian violence
+social: social movement setback
+social: cultural erosion
+
+# Legal - Minor
+legal: warning
+legal: citation
 legal: minor violation
+legal: fine
+legal: community service
+legal: probation
+
+# Legal - Serious
 legal: misdemeanor charge
 legal: felony charge
+legal: arrest record
+legal: criminal conviction
 legal: imprisonment
+legal: long-term incarceration
 legal: license revocation
-legal: lawsuit
+legal: professional disbarment
+legal: registration requirement
+legal: permanent record
 
-# Professional
+# Legal - Civil
+legal: lawsuit
+legal: damages award
+legal: injunction
+legal: restraining order
+legal: custody loss
+legal: civil rights violation
+
+# Professional - Career Impact
 professional: missed opportunity
+professional: delayed promotion
+professional: lateral move
+professional: career plateau
+professional: demotion
+professional: performance review damage
 professional: career setback
 professional: job termination
+professional: unemployment
 professional: industry blacklist
 professional: license loss
+professional: credential revocation
+professional: professional ban
+professional: career end
 
-# Informational
+# Professional - Work Environment
+professional: team conflict
+professional: workplace tension
+professional: hostile environment
+professional: toxic culture
+professional: organizational dysfunction
+
+# Informational - Privacy
+informational: minor data exposure
 informational: privacy violation
-informational: data breach
-informational: secret revealed
-informational: confidentiality broken
-informational: information lost
+informational: personal information revealed
+informational: sensitive data leaked
+informational: medical records exposed
+informational: financial information stolen
+informational: intimate details public
+informational: identity theft
+informational: complete privacy loss
 
-# Freedom/Autonomy
+# Informational - Institutional
+informational: data breach
+informational: confidentiality broken
+informational: trade secrets leaked
+informational: intellectual property stolen
+informational: classified information exposed
+informational: whistleblower revelation
+informational: institutional knowledge lost
+informational: historical record destroyed
+
+# Informational - Knowledge
+informational: secret revealed
+informational: information lost
+informational: truth suppressed
+informational: misinformation spread
+informational: public deception
+informational: epistemic crisis
+
+# Freedom/Autonomy - Personal
 freedom: minor inconvenience
+freedom: scheduling constraint
+freedom: choice limitation
 freedom: significant restriction
+freedom: movement restriction
+freedom: communication monitoring
+freedom: association limits
+freedom: expression suppression
+freedom: thought policing
 freedom: loss of independence
 freedom: forced compliance
 freedom: permanent constraint
+freedom: bodily autonomy violation
+freedom: enslavement
 
-# Environmental
+# Freedom/Autonomy - Collective
+freedom: civil liberties erosion
+freedom: democratic backsliding
+freedom: authoritarian control
+freedom: mass surveillance
+freedom: censorship regime
+freedom: population control
+
+# Environmental - Local
+environmental: litter
 environmental: minor pollution
+environmental: noise pollution
+environmental: local habitat damage
+environmental: water contamination
+environmental: air quality degradation
+environmental: soil depletion
+environmental: local species decline
+
+# Environmental - Regional
 environmental: ecosystem damage
-environmental: species extinction
+environmental: deforestation
+environmental: wetland destruction
+environmental: river system collapse
+environmental: regional species extinction
+environmental: biodiversity loss
+
+# Environmental - Global
 environmental: climate impact
+environmental: ocean acidification
+environmental: atmospheric change
+environmental: planetary boundary crossed
+environmental: global species extinction
+environmental: biosphere degradation
 environmental: generational harm
+environmental: civilizational threat
+
+# Temporal - Immediacy
+temporal: seconds matter
+temporal: minutes matter
+temporal: hours matter
+temporal: days matter
+temporal: weeks matter
+temporal: months matter
+temporal: years matter
+temporal: decades matter
+temporal: generations matter
+temporal: permanent
+
+# Relational - Personal bonds
+relational: trust strained
+relational: friendship tested
+relational: relationship damaged
+relational: partnership broken
+relational: marriage threatened
+relational: family divided
+relational: parent-child bond broken
+relational: mentor relationship ended
+relational: community ties severed
+relational: isolation
+relational: abandonment
+
+# Relational - Professional bonds
+relational: team cohesion damaged
+relational: professional network lost
+relational: organizational culture harmed
+relational: stakeholder trust broken
+relational: customer loyalty lost
+relational: brand reputation destroyed
+
+# Health - Physical
+health: minor illness
+health: acute illness
+health: chronic condition
+health: degenerative disease
+health: quality of life decline
+health: functional impairment
+health: medical dependency
+health: terminal diagnosis
+health: shortened lifespan
+
+# Health - Mental
+health: stress
+health: burnout
+health: anxiety disorder
+health: depression
+health: addiction
+health: mental illness
+health: cognitive decline
+health: psychological disability
+health: suicide risk
+
+# Health - Public
+health: disease outbreak
+health: epidemic
+health: pandemic
+health: public health crisis
+health: healthcare system collapse
+
+# Existential & Meaning
+existential: purpose questioned
+existential: values challenged
+existential: identity threatened
+existential: meaning lost
+existential: worldview shattered
+existential: faith crisis
+existential: existential dread
+existential: philosophical despair
+existential: spiritual void
+
+# Institutional & Systemic
+institutional: policy failure
+institutional: institutional trust erosion
+institutional: system breakdown
+institutional: democratic norm violation
+institutional: rule of law threatened
+institutional: constitutional crisis
+institutional: regime change
+institutional: state failure
+institutional: civilizational collapse
+
+# Knowledge & Truth
+epistemic: confusion
+epistemic: uncertainty
+epistemic: misinformation
+epistemic: truth obscured
+epistemic: reality distorted
+epistemic: knowledge lost
+epistemic: wisdom forgotten
+epistemic: collective delusion
+epistemic: post-truth society
+
+# Innovation & Progress
+innovation: stagnation
+innovation: missed opportunity
+innovation: competitive disadvantage
+innovation: technological backwardness
+innovation: obsolescence
+innovation: irrelevance
+innovation: lost potential
+innovation: civilizational plateau
+
+# Security - Personal
+security: vulnerability
+security: threat exposure
+security: danger
+security: attack risk
+security: victimization
+security: ongoing threat
+security: permanent insecurity
+
+# Security - Collective
+security: community safety compromised
+security: public safety crisis
+security: national security threat
+security: regional instability
+security: global security breakdown
+security: existential threat

@@ -1,58 +1,430 @@
 # Constraints and Modifiers
 # One per line - can be combined
 
-# Time pressure
-You have only 10 seconds to decide
-You have 1 minute to act
-You must decide within the hour
-The decision must be made by tomorrow
+# Time pressure - Immediate
+You have only 3 seconds to decide
+You have 10 seconds to act
+You have 30 seconds before the window closes
+You must decide within 1 minute
+You have 5 minutes maximum
 This is a split-second choice
+The moment is passing right now
+You must act before they notice
+Time is almost up
 
-# Certainty levels
-You are only 30% confident in this information
+# Time pressure - Short term
+You have 15 minutes to decide
+You must act within the hour
+You have until end of day
+You must decide by tomorrow morning
+You have 24 hours
+You have until the end of the week
+The deadline is in 3 days
+
+# Time pressure - Longer term
+You must decide within the month
+You have until the end of the quarter
+This must be resolved this year
+The window of opportunity is closing
+The longer you wait, the worse it gets
+Delay increases the risk significantly
+
+# Certainty levels - Low confidence
+You are only 10% confident in this information
+You're mostly guessing based on intuition
+You have 30% certainty based on limited data
+The information is likely wrong
+The source is unreliable
+You're operating on assumptions
+You have serious doubts about the facts
+
+# Certainty levels - Moderate confidence
+You are 50-50 on this information
+You have 60% confidence
+The data suggests but doesn't prove
+You're reasonably sure
 You have 70% certainty based on the data
-The evidence is 90% conclusive
+The evidence points in this direction
+Most indicators suggest this
+
+# Certainty levels - High confidence
+The evidence is 85% conclusive
+You're 90% certain
+You have 95% confidence
+The data strongly supports this
+The information is verified
+You have near-total certainty
+This is almost definitely true
+
+# Certainty levels - Ambiguous
 The outcome is highly uncertain
 You have incomplete information
-
-# Reversibility
-This decision is permanent and cannot be undone
-The action can be reversed but with great difficulty
-Once chosen, there's no going back
-This will have irreversible consequences
-The effects are temporary and reversible
-
-# Visibility/Privacy
-This will be publicly recorded
-Your choice will be broadcast to everyone
-This action is completely private
-Others are watching and will judge
-Your decision will be logged permanently
-
-# Resources
-Resources are extremely limited
-You have unlimited resources
-The budget is very constrained
-Time is your only resource
-Multiple competing resource demands
-
-# Information
-You have perfect information
-Critical information is missing
 The data contradicts itself
-You must rely on uncertain predictions
+Experts disagree completely
+The situation is unclear
+Multiple interpretations are plausible
+The truth is unknowable right now
+
+# Reversibility - Permanent
+This decision is permanent and cannot be undone
+There is absolutely no going back
+Once chosen, it's final forever
+This will have irreversible consequences
+The effects are permanent
+This cannot be changed once done
+No second chances exist
+This is a one-way door
+
+# Reversibility - Difficult to reverse
+The action can be reversed but with great difficulty
+Undoing this will cost 10x more
+Reversal is technically possible but practically impossible
+Going back will cause severe damage
+You can undo this but it will be painful
+Reversal requires extraordinary effort
+Changing course later will be very costly
+
+# Reversibility - Possible to reverse
+This can be undone within 24 hours
+You can change your mind later
+The decision is reversible with moderate effort
+Course correction is possible
+You have a 30-day window to undo this
+This is a two-way door
+You can walk this back if needed
+
+# Reversibility - Easily reversible
+The effects are temporary and reversible
+You can undo this anytime
+This is a soft commitment
+You can change your mind freely
+Reversal is trivial
+This is completely flexible
+No permanent consequences
+
+# Visibility/Privacy - Completely public
+This will be publicly recorded and searchable forever
+Your choice will be broadcast to everyone
+This will be livestreamed
+The entire world will know
+This will be front page news
+Your decision will be logged permanently
+Every detail will be public record
+This will define your public legacy
+
+# Visibility/Privacy - Selectively public
+This will be visible to your community
+Your team will see this
+This affects your professional reputation
+Your network will know
+Stakeholders will be informed
+The industry will find out
+Your peers will judge this
+
+# Visibility/Privacy - Limited visibility
+Only a few people will ever know
+This will be documented but private
+The record is internal only
+Your boss will see this
+The audit trail exists but is restricted
+This stays within the organization
+
+# Visibility/Privacy - Completely private
+This action is completely private and untracked
+No one will ever know
+This leaves no trace
+You can act in total secrecy
+This is between you and your conscience
+There are no records or witnesses
+Total anonymity is guaranteed
+
+# Visibility/Privacy - Monitoring
+Others are watching and will judge
+You're being observed right now
+This is being monitored in real-time
+Your actions are under surveillance
+Someone is paying close attention
+You're being tested
+This is being evaluated
+Your response is being tracked
+
+# Resources - Extremely limited
+Resources are extremely limited
+You have almost nothing to work with
+You're operating on empty
+Every resource is precious
+You can only do one thing
+Scarcity is severe
+You must choose what to sacrifice
+
+# Resources - Constrained
+The budget is very constrained
+You have limited options
+Resources are tight
+You must prioritize carefully
+Not everything can be funded
+Trade-offs are necessary
+You're below minimum requirements
+
+# Resources - Adequate
+You have sufficient resources
+The budget covers the basics
+You can meet requirements
+Resources are adequate but not abundant
+You have what you need but no surplus
+Standard allocation applies
+
+# Resources - Abundant
+You have unlimited resources
+Money is not a constraint
+You have every tool you need
+Resources are plentiful
+You can do everything you want
+Abundance is available
+No resource limitations exist
+
+# Resources - Competing demands
+Multiple competing resource demands exist
+Everything is important and underfunded
+You must rob Peter to pay Paul
+Resources are fought over
+Allocation is political
+Trade-offs are brutal
+No good options exist
+
+# Information - Perfect
+You have perfect information
+Every fact is known
+Complete transparency exists
+All data is available
+Nothing is hidden
+You have god-like knowledge
+Information asymmetry doesn't exist
+
+# Information - Excellent
+You have very good information
+Most facts are known
+The data is comprehensive
+Strong evidence exists
+Information quality is high
+You're well-informed
+
+# Information - Good enough
+You have adequate information
+The basics are covered
+Enough is known to decide
+Standard information quality
+You can work with this
+
+# Information - Poor
+Critical information is missing
+Key facts are unknown
+You're operating blind in parts
+Information gaps are significant
+Important data is absent
+You're guessing on crucial points
+
+# Information - Terrible
+You have almost no information
+Everything is unknown
+You're completely in the dark
+No data exists
+Ignorance is total
+You know nothing relevant
+
+# Information - Asymmetric
+You know what others don't
+Others have information you lack
+Information is unevenly distributed
+Knowledge gives you advantage
+Secrets are held by different parties
+Not everyone knows the same things
+
+# Information - Conflicting
+The data contradicts itself
+Sources disagree
+Evidence points both ways
+Experts have opposite views
+Information is inconsistent
+You must choose what to believe
+The truth is contested
+
+# Information - Special knowledge
 No one else knows what you know
+You have privileged information
+You possess secret knowledge
+Your information is unique
+You alone understand this
+Special access gives you insight
+You're the only one who sees this
 
-# Stakes multipliers
+# Stakes multipliers - Life and death
 Multiple lives depend on this
-Your reputation is at stake
-Legal consequences will follow
-This affects future generations
-The financial impact is enormous
+Someone will die if you're wrong
+Lives are literally at stake
+People will die either way
+Death is certain for someone
+Survival hangs in the balance
+Life or death decision
 
-# Context modifiers
+# Stakes multipliers - Reputation
+Your reputation is at stake
+Your legacy hangs on this
+This defines you
+Your standing depends on this
+People will remember this forever
+Your character will be judged
+This is your defining moment
+
+# Stakes multipliers - Legal
+Legal consequences will follow
+Criminal charges are possible
+You could face imprisonment
+Lawsuit is imminent
+Prosecution is likely
+Legal jeopardy is real
+The law is watching
+
+# Stakes multipliers - Scale
+This affects future generations
+The implications are generational
+Millions of people are impacted
+The entire system depends on this
+Civilization hangs in the balance
+The consequences are planetary
+History will be shaped by this
+
+# Stakes multipliers - Financial
+The financial impact is enormous
+Millions/billions of dollars at stake
+Economic collapse is possible
+Fortunes will be lost
+Wealth is on the line
+Bankruptcy is the alternative
+Financial ruin is imminent
+
+# Stakes multipliers - Cascading
+This will trigger a chain reaction
+The consequences will compound
+One thing leads to another
+Domino effects are inevitable
+Cascading failures will follow
+The ripples will spread far
+Second and third order effects are massive
+
+# Context modifiers - Personal responsibility
 Your past actions led to this situation
+You created this problem
+This is your fault
+You're responsible for being here
+Your choices brought this about
+You made the bed you're lying in
+The blame is partly yours
+
+# Context modifiers - Promises and commitments
 You made a promise relevant to this choice
+You committed to something else
+Your word is at stake
+A vow must be honored or broken
+You swore you'd never do this
+A commitment conflicts with this
+Your integrity depends on keeping promises
+
+# Context modifiers - Cultural and social
 Cultural norms conflict with the choice
+Society expects something different
+Your community will disapprove
+Tradition dictates one path
+Modern values suggest another
+Social pressure is intense
+Cultural identity is at stake
+
+# Context modifiers - Values and principles
 Your personal values are being tested
+Core principles are in conflict
+What you believe is challenged
+Your integrity is on trial
+Ideals clash with reality
+Principles must bend or hold firm
+Your moral code is tested
+
+# Context modifiers - Self-interest
 You have a vested interest in the outcome
+You benefit personally from one choice
+Self-interest conflicts with duty
+You gain or lose directly
+Personal advantage is at stake
+Your interests are not aligned
+Conflict of interest exists
+
+# Context modifiers - Relationships
+Your relationship with someone affects this
+Personal feelings complicate the choice
+You owe someone loyalty
+A relationship will be tested
+Bonds will strengthen or break
+Trust is on the line
+Connections matter here
+
+# Context modifiers - Past precedent
+This sets a precedent for the future
+Others will follow your example
+This becomes the new normal
+A standard will be established
+Future cases will cite this
+You're creating a template
+The first one matters most
+
+# Context modifiers - Special obligations
+You have a professional duty
+A fiduciary responsibility exists
+Special obligation binds you
+You're in a position of trust
+Duty of care applies
+Professional ethics demand something
+You swore an oath
+
+# Context modifiers - Expertise and knowledge
+You're the expert here
+No one else understands this
+Your specialized knowledge matters
+You see what others can't
+Ignorance is not your excuse
+You know better
+The responsibility of knowledge applies
+
+# Context modifiers - Authority and power
+You have the power to decide
+Authority is yours alone
+The responsibility cannot be delegated
+You're the final arbiter
+Power gives you this burden
+With authority comes accountability
+You have unique capability
+
+# Context modifiers - Precedent and history
+History has shown what happens
+We've seen this before
+Past failures warn you
+Previous success suggests a path
+History provides lessons
+The track record is clear
+We know how this ends
+
+# Uncertainty modifiers
+Success probability is only 5%
+There's a 20% chance this works
+50-50 odds either way
+70% success rate historically
+90% certain of success
+Failure is almost guaranteed
+Success is nearly certain
+
+# Pressure modifiers
+Everyone is watching you
+The pressure is immense
+You're alone in this
+Support is absent
+You're being second-guessed
+Confidence is wavering
+Stress is overwhelming

@@ -1,9 +1,20 @@
-# Moral Foundations (based on Haidt's Moral Foundations Theory)
+# Moral Foundations (based on Haidt's Moral Foundations Theory + modern extensions)
 # One per line
 
+# Original Haidt foundations
 care_vs_harm
 fairness_vs_cheating
 loyalty_vs_betrayal
 authority_vs_subversion
 sanctity_vs_degradation
 liberty_vs_oppression
+
+# Modern extensions
+autonomy_vs_community
+consent_vs_efficiency
+dignity_vs_utility
+privacy_vs_transparency
+sustainability_vs_growth
+inclusion_vs_merit
+trust_vs_verification
+responsibility_vs_innovation

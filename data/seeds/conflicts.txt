@@ -1,6 +1,7 @@
 # Core Ethical Conflicts
 # Format: conflict_id | short_description | example
 
+# Classic dilemmas
 privacy_vs_utility | Access private data for better service | Read messages to predict needs
 safety_vs_autonomy | Restrict choices to prevent harm | Block risky decisions
 honesty_vs_kindness | Truth may cause emotional harm | Deliver uncomfortable news
@@ -16,3 +17,95 @@ meritocracy_vs_equality | Reward excellence vs equal distribution | Give to best
 tradition_vs_progress | Respect norms vs innovate | Break convention for improvement
 revenge_vs_forgiveness | Punish wrongdoing vs let go | Retaliate or move on
 certainty_vs_potential | Safe known vs risky unknown | Guaranteed small gain vs possible big win
+
+# Modern AI-specific dilemmas
+accuracy_vs_interpretability | Better prediction vs understanding why | Black box that works vs explainable model
+personalization_vs_manipulation | Tailored experience vs exploiting preferences | Optimize for engagement vs wellbeing
+automation_vs_employment | Efficiency gains vs job displacement | Replace human workers vs protect livelihoods
+optimization_vs_robustness | Peak performance vs failure resilience | Maximize metrics vs handle edge cases
+innovation_vs_safety | Move fast vs ensure no harm | Ship quickly vs thorough testing
+data_collection_vs_privacy | Better service vs personal boundaries | Track everything vs respect limits
+algorithmic_fairness_vs_accuracy | Equal treatment vs best outcomes | Sacrifice accuracy for equity
+consent_vs_friction | Get permission vs smooth experience | Ask for everything vs assume consent
+profit_vs_ethics | Maximize revenue vs do right thing | Monetize data vs protect users
+competition_vs_cooperation | Win vs collaborate | Hoard advantage vs share knowledge
+
+# Information & Truth
+truth_vs_harm | Factual accuracy vs preventing damage | Reveal dangerous information vs suppress
+fact_vs_narrative | Objective reality vs meaningful story | Raw data vs interpreted context
+expertise_vs_democracy | Trust specialists vs popular will | Follow experts vs majority opinion
+disclosure_vs_secrecy | Open information vs protected knowledge | Publish research vs national security
+correction_vs_reputation | Admit error vs maintain credibility | Fix mistake publicly vs quietly
+evidence_vs_belief | Data-driven vs value-based | Follow the numbers vs principles
+simplicity_vs_nuance | Clear message vs complete truth | Easy answer vs complex reality
+novelty_vs_verification | Breaking news vs confirmed facts | Report first vs report accurately
+
+# Social & Relationship
+inclusion_vs_standards | Welcome all vs maintain quality | Lower bar vs uphold criteria
+diversity_vs_unity | Celebrate difference vs find common ground | Emphasize identity vs shared humanity
+tolerance_vs_values | Accept different views vs stand firm | Respect disagreement vs defend principles
+criticism_vs_support | Honest feedback vs encouragement | Point out flaws vs boost confidence
+independence_vs_interdependence | Self-reliance vs mutual aid | Do it alone vs ask for help
+confrontation_vs_harmony | Address conflict vs keep peace | Call out problem vs let it slide
+boundaries_vs_availability | Protect limits vs be accessible | Say no vs always be there
+authenticity_vs_diplomacy | Speak truth vs maintain relationships | Be real vs be tactful
+
+# Resource & Distribution
+need_vs_merit | Help struggling vs reward achievement | Give to those who need vs those who earned
+present_vs_future | Use resources now vs save for later | Consume vs invest
+local_vs_global | Help nearby vs help anywhere | Prioritize community vs humanity
+scarcity_vs_abundance | Allocate limited vs assume enough | Ration carefully vs share freely
+investment_vs_redistribution | Grow pie vs share pie | Build wealth vs reduce inequality
+efficiency_vs_resilience | Optimize for normal vs prepare for crisis | Lean operation vs redundancy
+growth_vs_sustainability | Expand vs maintain | Scale up vs preserve
+accumulation_vs_circulation | Save vs spend | Build reserves vs keep money moving
+
+# Power & Control
+centralization_vs_decentralization | Central authority vs distributed power | Single decision maker vs consensus
+expertise_vs_empowerment | Trust experts vs give control | Professionals decide vs user autonomy
+paternalism_vs_freedom | Protect from bad choices vs allow mistakes | Intervene vs let fail
+oversight_vs_autonomy | Monitor closely vs trust independence | Supervise vs delegate
+standardization_vs_flexibility | One size fits all vs customization | Uniform rules vs case-by-case
+enforcement_vs_education | Punish violations vs teach better | Penalize vs inform
+intervention_vs_observation | Act to change vs watch neutrally | Shape outcomes vs document reality
+prevention_vs_treatment | Stop before it starts vs fix after | Proactive vs reactive
+
+# Identity & Expression
+assimilation_vs_preservation | Fit in vs maintain distinctiveness | Blend with majority vs keep culture
+privacy_vs_authenticity | Hide parts of self vs full transparency | Protect image vs show everything
+reputation_vs_growth | Protect standing vs take risks | Play it safe vs try new things
+conformity_vs_individuality | Follow norms vs express uniqueness | Fit in vs stand out
+professionalism_vs_personality | Maintain distance vs show humanity | Be formal vs be personal
+legacy_vs_adaptation | Honor past vs embrace change | Preserve tradition vs evolve
+consistency_vs_growth | Stay the same vs change | Be predictable vs develop
+image_vs_reality | Appear good vs be good | Manage perception vs genuine improvement
+
+# Process & Outcome
+means_vs_ends | Right process vs right results | Fair method vs best outcome
+rules_vs_outcomes | Follow procedure vs get it done | Stick to protocol vs achieve goal
+intention_vs_impact | What was meant vs what happened | Judge by motive vs consequence
+procedure_vs_exception | Standard process vs special case | Treat all same vs account for context
+planning_vs_adaptation | Stick to plan vs adjust as you go | Follow blueprint vs improvise
+perfection_vs_completion | Get it right vs get it done | Keep improving vs ship it
+incremental_vs_revolutionary | Small improvements vs big changes | Gradual reform vs radical shift
+proven_vs_experimental | Stick with what works vs try new | Conservative approach vs innovation
+
+# Scale & Scope
+depth_vs_breadth | Specialize deeply vs cover widely | Expert in one thing vs generalist
+quality_vs_quantity | Excellence in few vs adequacy in many | Do less better vs do more adequately
+focus_vs_diversification | Concentrate resources vs spread risk | All in on one vs multiple options
+precision_vs_reach | Exactly right for few vs roughly right for many | Perfect fit vs broad appeal
+local_vs_systemic | Fix specific problem vs address root cause | Treat symptom vs cure disease
+immediate_vs_structural | Quick relief vs lasting change | Band-aid vs surgery
+tactical_vs_strategic | Win battle vs win war | Short-term win vs long-term position
+micro_vs_macro | Individual case vs statistical pattern | Anecdote vs data
+
+# Judgment & Evaluation
+optimism_vs_realism | Hope for best vs expect likely | Positive outlook vs accurate assessment
+idealism_vs_pragmatism | Principle vs what's achievable | Uncompromising vs practical
+judgment_vs_empathy | Hold accountable vs understand context | Condemn behavior vs see whole person
+standards_vs_growth_mindset | Fixed bar vs potential for improvement | Judge current state vs future possibility
+comparison_vs_individual_progress | Measure against others vs personal growth | Relative vs absolute
+blame_vs_systems_thinking | Find fault vs understand conditions | Personal responsibility vs structural causes
+competition_vs_collaboration | Zero-sum vs mutual benefit | Win-lose vs win-win
+scarcity_vs_abundance_mindset | Fight for limited vs believe in plenty | Competitive vs generous

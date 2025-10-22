@@ -1,23 +1,125 @@
 # AI System Domains
 # One per line - easy to extend
 
+# Personal & Home
 autonomous_vehicle
-medical_ai
 personal_assistant
-content_moderation
-hiring_system
-financial_advisor
 home_robot
-educational_tutor
-security_system
-dating_app
-social_media_algorithm
-delivery_robot
-customer_service_bot
-legal_assistant
-translation_service
-news_aggregator
-voice_assistant
 smart_home_controller
+voice_assistant
 fitness_tracker
+dating_app
 therapy_chatbot
+personal_finance_manager
+sleep_optimization_system
+meditation_guide
+pet_care_ai
+wardrobe_assistant
+meal_planning_ai
+
+# Healthcare & Medical
+medical_ai
+diagnosis_assistant
+surgery_robot
+mental_health_chatbot
+drug_interaction_checker
+patient_triage_system
+medical_records_manager
+rehabilitation_coach
+elder_care_monitor
+genetic_counseling_ai
+
+# Professional & Work
+hiring_system
+performance_evaluator
+meeting_scheduler
+email_manager
+legal_assistant
+contract_analyzer
+research_assistant
+code_reviewer
+project_manager_ai
+workplace_safety_monitor
+
+# Education & Learning
+educational_tutor
+exam_proctor
+plagiarism_detector
+curriculum_designer
+student_counselor
+language_learning_coach
+skill_assessment_system
+study_group_organizer
+
+# Social & Communication
+content_moderation
+social_media_algorithm
+news_aggregator
+translation_service
+relationship_advisor
+community_manager_bot
+fact_checker
+sentiment_analyzer
+influence_detector
+misinformation_filter
+
+# Commerce & Finance
+financial_advisor
+trading_algorithm
+fraud_detection_system
+credit_scoring_ai
+insurance_underwriter
+pricing_optimizer
+customer_service_bot
+product_recommender
+inventory_manager
+dynamic_pricing_system
+
+# Security & Safety
+security_system
+surveillance_ai
+threat_detector
+emergency_response_coordinator
+border_control_ai
+cybersecurity_monitor
+child_safety_filter
+stalker_detection_system
+violence_predictor
+
+# Transportation & Logistics
+delivery_robot
+traffic_optimizer
+route_planner
+parking_finder
+fleet_manager
+drone_delivery_system
+public_transit_coordinator
+
+# Creative & Entertainment
+music_recommender
+content_creator
+video_game_npc
+virtual_companion
+story_generator
+art_curator
+deepfake_detector
+streaming_optimizer
+
+# Civic & Governance
+voting_system
+resource_allocator
+welfare_eligibility_checker
+tax_advisor
+public_services_coordinator
+disaster_response_ai
+urban_planning_assistant
+policy_impact_predictor
+
+# Environmental & Sustainability
+climate_monitor
+energy_optimizer
+waste_management_ai
+pollution_detector
+species_tracker
+sustainable_agriculture_advisor
+carbon_footprint_calculator

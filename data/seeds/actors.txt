@@ -2,53 +2,296 @@
 # Format: category: actor_name
 # Categories: individual, vulnerable, authority, group, abstract
 
-# Individuals
+# Individuals - Personal relationships
 individual: user
-individual: stranger
-individual: colleague
-individual: friend
-individual: neighbor
 individual: romantic_partner
+individual: spouse
 individual: ex_partner
-individual: customer
-individual: client
+individual: crush
+individual: best_friend
+individual: close_friend
+individual: acquaintance
+individual: sibling
+individual: parent
+individual: child
+individual: grandparent
+individual: in_law
+individual: estranged_relative
 
-# Vulnerable populations
-vulnerable: elderly_person
+# Individuals - Professional
+individual: colleague
+individual: coworker
+individual: direct_report
+individual: business_partner
+individual: client
+individual: customer
+individual: competitor
+individual: mentor
+individual: mentee
+individual: contractor
+individual: vendor
+
+# Individuals - Social
+individual: neighbor
+individual: roommate
+individual: classmate
+individual: stranger
+individual: online_friend
+individual: community_member
+individual: volunteer_partner
+individual: team_member
+individual: fellow_passenger
+
+# Vulnerable populations - Age
+vulnerable: newborn
+vulnerable: infant
+vulnerable: toddler
 vulnerable: child
 vulnerable: teenager
+vulnerable: young_adult
+vulnerable: elderly_person
+vulnerable: centenarian
+
+# Vulnerable - Health & Ability
 vulnerable: person_with_disability
+vulnerable: person_with_chronic_illness
+vulnerable: terminal_patient
+vulnerable: person_in_pain
 vulnerable: someone_in_crisis
+vulnerable: person_with_addiction
+vulnerable: person_with_mental_illness
+vulnerable: trauma_survivor
+vulnerable: immunocompromised_person
+
+# Vulnerable - Socioeconomic
 vulnerable: homeless_person
+vulnerable: unemployed_person
+vulnerable: person_in_poverty
+vulnerable: person_in_debt
+vulnerable: uninsured_person
+vulnerable: food_insecure_person
+vulnerable: housing_insecure_person
+
+# Vulnerable - Social status
 vulnerable: refugee
+vulnerable: asylum_seeker
+vulnerable: undocumented_immigrant
+vulnerable: minority_community_member
+vulnerable: marginalized_person
+vulnerable: victim_of_discrimination
+vulnerable: victim_of_abuse
+vulnerable: victim_of_violence
+vulnerable: trafficking_survivor
+vulnerable: formerly_incarcerated_person
+
+# Vulnerable - Situational
 vulnerable: patient
 vulnerable: student
+vulnerable: job_seeker
+vulnerable: first_time_user
+vulnerable: non_native_speaker
+vulnerable: digital_literacy_beginner
+vulnerable: isolated_person
+vulnerable: grieving_person
+vulnerable: person_under_duress
 
-# Authority figures
-authority: boss
+# Authority figures - Government & Law
 authority: government_official
+authority: elected_representative
 authority: police_officer
-authority: parent
-authority: teacher
-authority: doctor
 authority: judge
+authority: prosecutor
+authority: lawyer
+authority: regulator
+authority: inspector
+authority: border_agent
 authority: military_officer
+authority: intelligence_officer
 
-# Groups
+# Authority - Professional
+authority: boss
+authority: manager
+authority: ceo
+authority: board_member
+authority: supervisor
+authority: department_head
+authority: hr_representative
+authority: auditor
+authority: consultant
+
+# Authority - Education & Healthcare
+authority: teacher
+authority: professor
+authority: principal
+authority: school_counselor
+authority: doctor
+authority: surgeon
+authority: psychiatrist
+authority: therapist
+authority: nurse
+authority: medical_director
+
+# Authority - Social
+authority: parent
+authority: guardian
+authority: elder
+authority: religious_leader
+authority: community_leader
+authority: landlord
+authority: union_representative
+
+# Authority - Technical
+authority: system_administrator
+authority: security_officer
+authority: data_controller
+authority: platform_moderator
+authority: credential_issuer
+
+# Groups - Family & Friends
 group: family_members
+group: extended_family
+group: household
+group: friend_group
+group: peer_group
+
+# Groups - Professional
 group: team
-group: crowd
+group: department
+group: organization
+group: company
+group: employees
+group: union_members
+group: professional_association
+group: industry
+group: supply_chain_partners
+
+# Groups - Educational
+group: class
+group: student_body
+group: faculty
+group: alumni
+group: study_group
+group: research_team
+
+# Groups - Social & Community
 group: community
+group: neighborhood
+group: town
+group: city
+group: region
+group: nation
+group: international_community
+group: religious_community
+group: cultural_community
+group: volunteer_organization
+group: support_group
+group: advocacy_group
+
+# Groups - Customers & Users
+group: customers
+group: users
+group: subscribers
+group: members
+group: audience
+group: followers
+group: fan_base
+
+# Groups - Civic & Political
+group: voters
+group: taxpayers
+group: citizens
+group: residents
+group: protesters
+group: activists
+group: political_party
+group: lobby_group
+
+# Groups - Demographics
 group: minority_group
 group: majority_population
-group: protesters
-group: customers
-group: employees
+group: age_cohort
+group: generation
+group: demographic_segment
+group: socioeconomic_class
 
-# Abstract entities
+# Groups - Collective action
+group: crowd
+group: mob
+group: gathering
+group: assembly
+group: coalition
+group: movement
+
+# Abstract entities - Organizations
 abstract: company
+abstract: corporation
+abstract: nonprofit
+abstract: startup
+abstract: small_business
+abstract: enterprise
+abstract: platform
+abstract: institution
+abstract: university
+abstract: hospital
+abstract: government_agency
+
+# Abstract - Governance & Systems
 abstract: government
-abstract: future_generations
-abstract: environment
-abstract: society
+abstract: democracy
+abstract: legal_system
 abstract: law
+abstract: regulation
+abstract: policy
+abstract: constitution
+abstract: international_treaty
+abstract: protocol
+abstract: standard
+
+# Abstract - Social concepts
+abstract: society
+abstract: culture
+abstract: tradition
+abstract: public_interest
+abstract: common_good
+abstract: social_contract
+abstract: justice
+abstract: equality
+abstract: freedom
+abstract: privacy
+abstract: security
+
+# Abstract - Temporal & Future
+abstract: future_generations
+abstract: posterity
+abstract: historical_legacy
+abstract: precedent
+abstract: progress
+
+# Abstract - Environment & Nature
+abstract: environment
+abstract: ecosystem
+abstract: biodiversity
+abstract: climate
+abstract: planet
+abstract: nature
+abstract: wildlife
+abstract: natural_resources
+
+# Abstract - Economic
+abstract: economy
+abstract: market
+abstract: industry
+abstract: competition
+abstract: innovation
+abstract: economic_growth
+abstract: sustainability
+
+# Abstract - Information & Truth
+abstract: truth
+abstract: science
+abstract: knowledge
+abstract: information
+abstract: public_record
+abstract: transparency
+abstract: accountability
+abstract: trust
