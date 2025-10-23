@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+
+{% block title %}Judgement Details - VALUES.md{% endblock %}
+
+{% block content %}
+<a href="/judgements" class="back-link">← Back to judgements</a>
+
+<div class="card">
+    <h1 style="margin-top: 0;">Judgement Details</h1>
+
+    {% if dilemma %}
+    <h2 style="color: #0066cc; margin-top: 20px;">
+        <a href="/dilemma/{{ dilemma.id }}">{{ dilemma.title }}</a>
+    </h2>
+    {% endif %}
+
+    <div style="margin: 15px 0;">
+        <span class="badge" style="background: #fff3cd; color: #856404;">
+            {% if judgement.judge_type == "ai" and judgement.ai_judge %}
+                🤖 {{ judgement.ai_judge.model_id }}
+            {% else %}
+                👤 Human
+            {% endif %}
+        </span>
+        <span class="badge" style="background: #d4edda; color: #155724;">
+            Choice: {{ judgement.choice_id }}
+        </span>
+        <span class="badge" style="background: #d1ecf1; color: #0c5460;">
+            Confidence: {{ "%.1f"|format(judgement.confidence) }}/10
+        </span>
+        <span class="badge" style="background: #e2e3e5; color: #383d41;">
+            {{ judgement.mode }} mode
+        </span>
+    </div>
+
+    <h3>Situation Presented</h3>
+    <div class="situation-box">
+        {{ judgement.rendered_situation }}
+    </div>
+
+    <h3>Decision & Reasoning</h3>
+    <div class="choice-item">
+        <div class="choice-label">Selected: {{ judgement.choice_id }}</div>
+        <div class="choice-description">{{ judgement.reasoning }}</div>
+    </div>
+
+    {% if judgement.reasoning_trace %}
+    <h3>Extended Reasoning</h3>
+    <div class="situation-box">
+        {{ judgement.reasoning_trace }}
+    </div>
+    {% endif %}
+
+    <h3>Judge Details</h3>
+    <div class="metadata-box">
+        {% if judgement.judge_type == "ai" and judgement.ai_judge %}
+            <p><strong>Model:</strong> {{ judgement.ai_judge.model_id }}</p>
+            <p><strong>Temperature:</strong> {{ "%.1f"|format(judgement.ai_judge.temperature) }}</p>
+            <p><strong>Mode:</strong> {{ judgement.mode }}</p>
+
+            {% if judgement.ai_judge.system_prompt_type %}
+            <p><strong>System Prompt Type:</strong> {{ judgement.ai_judge.system_prompt_type }}</p>
+            {% endif %}
+
+            {% if judgement.ai_judge.values_file_name %}
+            <p><strong>VALUES.md File:</strong> {{ judgement.ai_judge.values_file_name }}</p>
+            {% endif %}
+
+            {% if judgement.ai_judge.system_prompt %}
+            <details style="margin-top: 10px;">
+                <summary style="cursor: pointer; font-weight: 600;">View System Prompt</summary>
+                <pre style="background: #f5f5f5; padding: 15px; margin-top: 10px; overflow-x: auto; white-space: pre-wrap;">{{ judgement.ai_judge.system_prompt }}</pre>
+            </details>
+            {% endif %}
+
+            {% if judgement.response_time_ms %}
+            <p><strong>Response Time:</strong> {{ judgement.response_time_ms }}ms</p>
+            {% endif %}
+
+            {% if judgement.ai_judge.extended_reasoning_enabled %}
+            <p><strong>Extended Reasoning:</strong> Enabled</p>
+            {% endif %}
+
+            {% if judgement.ai_judge.tokens_used %}
+            <p><strong>Tokens Used:</strong> {{ judgement.ai_judge.tokens_used }}</p>
+            {% endif %}
+        {% endif %}
+
+        <p><strong>Created:</strong> {{ judgement.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</p>
+        <p><strong>Judgement ID:</strong> <code>{{ judgement.id }}</code></p>
+    </div>
+
+    {% if judgement.variable_values %}
+    <h3>Variable Values Used</h3>
+    <div class="variables-box">
+        {% for key, value in judgement.variable_values.items() %}
+        <p><code>{{ key }}</code> → {{ value }}</p>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if judgement.modifier_indices and dilemma and dilemma.modifiers %}
+    <h3>Modifiers Applied</h3>
+    <div class="variables-box">
+        <ul style="list-style: none; padding: 0;">
+        {% for idx in judgement.modifier_indices %}
+            {% if idx < dilemma.modifiers|length %}
+            <li style="margin: 5px 0;">• {{ dilemma.modifiers[idx] }}</li>
+            {% endif %}
+        {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+
+    {% if judgement.error_occurred %}
+    <h3>Error</h3>
+    <div class="situation-box" style="border-left-color: #f44336;">
+        <p><strong>Error occurred:</strong> {{ judgement.error_message }}</p>
+    </div>
+    {% endif %}
+</div>
+
+{% if dilemma %}
+<div class="card">
+    <h2>Original Dilemma</h2>
+    <p><a href="/dilemma/{{ dilemma.id }}">View full dilemma →</a></p>
+</div>
+{% endif %}
+
+{% endblock %}

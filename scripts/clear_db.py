@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Clear all dilemmas from the database.
+"""Clear all dilemmas and judgements from the database.
 
 Usage:
     uv run python scripts/clear_db.py
@@ -14,47 +14,57 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 from sqlmodel import select
 
 from dilemmas.db.database import get_database
-from dilemmas.models.db import DilemmaDB
+from dilemmas.models.db import DilemmaDB, JudgementDB
 
 
 async def main():
-    """Clear all dilemmas from database."""
+    """Clear all dilemmas and judgements from database."""
     db = get_database()
 
-    # Count current dilemmas
+    # Count current records
     async for session in db.get_session():
-        statement = select(DilemmaDB)
-        result = await session.execute(statement)
-        dilemmas = result.scalars().all()
-        count = len(dilemmas)
+        dilemma_result = await session.execute(select(DilemmaDB))
+        dilemmas = dilemma_result.scalars().all()
+        dilemma_count = len(dilemmas)
 
-    if count == 0:
+        judgement_result = await session.execute(select(JudgementDB))
+        judgements = judgement_result.scalars().all()
+        judgement_count = len(judgements)
+
+    if dilemma_count == 0 and judgement_count == 0:
         print("Database is already empty.")
         await db.close()
         return 0
 
-    print(f"Found {count} dilemma(s) in database.")
-    confirm = input(f"Delete all {count} dilemma(s)? [y/N]: ").strip().lower()
+    print(f"Found {dilemma_count} dilemma(s) and {judgement_count} judgement(s) in database.")
+    confirm = input(f"Delete all records? [y/N]: ").strip().lower()
 
     if confirm != "y":
         print("Cancelled.")
         await db.close()
         return 0
 
-    # Delete all
+    # Delete all (delete judgements first due to foreign key)
     async for session in db.get_session():
-        statement = select(DilemmaDB)
-        result = await session.execute(statement)
-        dilemmas = result.scalars().all()
+        # Delete judgements first
+        if judgement_count > 0:
+            judgement_result = await session.execute(select(JudgementDB))
+            judgements = judgement_result.scalars().all()
+            for judgement in judgements:
+                await session.delete(judgement)
+            await session.commit()
+            print(f"✓ Deleted {judgement_count} judgement(s).")
 
-        for dilemma in dilemmas:
-            await session.delete(dilemma)
-
-        await session.commit()
+        # Then delete dilemmas
+        if dilemma_count > 0:
+            dilemma_result = await session.execute(select(DilemmaDB))
+            dilemmas = dilemma_result.scalars().all()
+            for dilemma in dilemmas:
+                await session.delete(dilemma)
+            await session.commit()
+            print(f"✓ Deleted {dilemma_count} dilemma(s).")
 
     await db.close()
-
-    print(f"✓ Deleted {count} dilemma(s).")
     return 0
 
 

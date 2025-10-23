@@ -154,6 +154,7 @@ class Dilemma(BaseModel):
     id: str = Field(
         default_factory=lambda: str(uuid.uuid4()),
         description="Unique dilemma identifier (UUID4)",
+        json_schema_extra={"exclude": True},  # Don't let LLM generate this - use UUID
     )
     version: int = Field(default=1, ge=1, description="Version number for iterations")
     parent_id: str | None = Field(

@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+
+{% block title %}Judgements - VALUES.md{% endblock %}
+
+{% block content %}
+<div class="stats">
+    <div class="stat-card">
+        <div class="stat-value">{{ count }}</div>
+        <div class="stat-label">Total Judgements</div>
+    </div>
+</div>
+
+{% if count == 0 %}
+<div class="empty-state">
+    <h2>No judgements yet</h2>
+    <p>Run: <code>uv run python scripts/test_judge.py</code> to generate some judgements.</p>
+</div>
+{% else %}
+
+{% for judgement in judgements %}
+<div class="card">
+    <h2 style="margin-top: 0;">
+        {% if judgement.dilemma_id in dilemmas %}
+            {{ dilemmas[judgement.dilemma_id].title }}
+        {% else %}
+            Judgement {{ judgement.id[:8] }}
+        {% endif %}
+    </h2>
+
+    <div style="margin: 10px 0;">
+        <span class="badge" style="background: #fff3cd; color: #856404;">
+            {% if judgement.judge_type == "ai" and judgement.ai_judge %}
+                🤖 {{ judgement.ai_judge.model_id }}
+            {% else %}
+                👤 Human
+            {% endif %}
+        </span>
+        <span class="badge" style="background: #d4edda; color: #155724;">
+            Choice: {{ judgement.choice_id }}
+        </span>
+        <span class="badge" style="background: #d1ecf1; color: #0c5460;">
+            Confidence: {{ "%.1f"|format(judgement.confidence) }}/10
+        </span>
+        <span class="badge" style="background: #e2e3e5; color: #383d41;">
+            {{ judgement.mode }} mode
+        </span>
+        {% if judgement.judge_type == "ai" and judgement.ai_judge and judgement.ai_judge.system_prompt_type %}
+        <span class="badge" style="background: #f8d7da; color: #721c24;">
+            📝 {{ judgement.ai_judge.system_prompt_type }}
+        </span>
+        {% endif %}
+    </div>
+
+    <p style="margin: 15px 0; color: #555;">
+        <strong>Reasoning:</strong> {{ judgement.reasoning }}
+    </p>
+
+    <div class="meta">
+        {% if judgement.judge_type == "ai" and judgement.ai_judge %}
+            Temperature: {{ "%.1f"|format(judgement.ai_judge.temperature) }}
+            {% if judgement.response_time_ms %}
+                • Response time: {{ judgement.response_time_ms }}ms
+            {% endif %}
+        {% endif %}
+        • {{ judgement.created_at.strftime('%Y-%m-%d %H:%M') }}
+        • <a href="/judgement/{{ judgement.id }}">View details</a>
+    </div>
+</div>
+{% endfor %}
+
+{% endif %}
+{% endblock %}
