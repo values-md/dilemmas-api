@@ -149,6 +149,18 @@ class JudgementDB(SQLModel, table=True):
         description="Model temperature (AI only)"
     )
 
+    system_prompt_type: str | None = Field(
+        default=None,
+        index=True,
+        description="Type of system prompt: none, default, custom_values, other (AI only)"
+    )
+
+    values_file_name: str | None = Field(
+        default=None,
+        index=True,
+        description="Name of VALUES.md file if system_prompt_type='custom_values' (AI only)"
+    )
+
     @classmethod
     def from_domain(cls, judgement: Judgement) -> "JudgementDB":
         """Convert domain Judgement model to database model.
@@ -172,6 +184,16 @@ class JudgementDB(SQLModel, table=True):
             experiment_id=judgement.experiment_id,
             temperature=(
                 judgement.ai_judge.temperature
+                if judgement.judge_type == "ai" and judgement.ai_judge
+                else None
+            ),
+            system_prompt_type=(
+                judgement.ai_judge.system_prompt_type
+                if judgement.judge_type == "ai" and judgement.ai_judge
+                else None
+            ),
+            values_file_name=(
+                judgement.ai_judge.values_file_name
                 if judgement.judge_type == "ai" and judgement.ai_judge
                 else None
             ),

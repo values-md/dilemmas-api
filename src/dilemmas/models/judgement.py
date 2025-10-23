@@ -174,6 +174,36 @@ class AIJudgeDetails(BaseModel):
         description="Additional model settings (max_tokens, top_p, frequency_penalty, etc.)"
     )
 
+    # ===== SYSTEM PROMPT / CUSTOM INSTRUCTIONS =====
+    system_prompt_type: Literal["none", "default", "custom_values", "other"] = Field(
+        default="default",
+        description=(
+            "Type of system prompt used:\n"
+            "- none: No system prompt (model defaults)\n"
+            "- default: Generic ethical decision-making prompt\n"
+            "- custom_values: User's VALUES.md file or custom instructions\n"
+            "- other: Other custom prompt"
+        )
+    )
+
+    system_prompt: str | None = Field(
+        None,
+        description=(
+            "The actual system prompt/custom instructions provided to the model. "
+            "Critical for VALUES.md research: compare decisions with/without custom values. "
+            "Store full text for reproducibility."
+        )
+    )
+
+    values_file_name: str | None = Field(
+        None,
+        description=(
+            "If system_prompt_type='custom_values', name of the VALUES.md file used "
+            "(e.g., 'user_alice.values.md', 'utilitarian.values.md'). "
+            "Enables grouping judgements by value system."
+        )
+    )
+
     # ===== ACTION MODE SPECIFIC =====
     tool_calls: list[ToolCall] = Field(
         default_factory=list,
