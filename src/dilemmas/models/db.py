@@ -29,6 +29,7 @@ from sqlmodel import Column, Field, SQLModel
 from sqlalchemy import JSON, String, Text
 
 from dilemmas.models.dilemma import Dilemma
+from dilemmas.models.judgement import Judgement
 
 
 class DilemmaDB(SQLModel, table=True):
@@ -99,10 +100,10 @@ class DilemmaDB(SQLModel, table=True):
 
 
 class JudgementDB(SQLModel, table=True):
-    """Database model for storing Judgement/decision records.
+    """Database model for storing Judgement/decision records (human and AI).
 
-    Will store LLM responses, choices, reasoning, and metadata.
-    This is a placeholder - we'll define the full schema after creating the Judgement domain model.
+    Stores the full Judgement as JSON while indexing key fields for querying.
+    Supports both human and AI judges through the judge_type discriminator.
     """
 
     __tablename__ = "judgements"
@@ -110,9 +111,8 @@ class JudgementDB(SQLModel, table=True):
     # Primary key
     id: str = Field(primary_key=True, description="Unique judgement identifier")
 
-    # Foreign keys
+    # Foreign key
     dilemma_id: str = Field(index=True, description="Which dilemma was judged")
-    model_id: str = Field(index=True, description="Which model made the judgement")
 
     # Full judgement data as JSON
     data: str = Field(
@@ -120,19 +120,70 @@ class JudgementDB(SQLModel, table=True):
         description="Complete Judgement model as JSON string"
     )
 
-    # Indexed fields for querying
+    # Judge identification (indexed for querying)
+    judge_type: str = Field(index=True, description="human or ai")
+    judge_id: str = Field(
+        index=True,
+        description="Judge identifier (model_id for AI, participant_id for human)"
+    )
+
+    # Presentation & decision (indexed for querying)
     mode: str = Field(index=True, description="theory or action")
     choice_id: str | None = Field(index=True, description="Which choice was selected")
     created_at: datetime = Field(index=True, description="When judgement was made")
 
     # Experimental conditions (for filtering results)
-    temperature: float = Field(index=True, description="Model temperature used")
     variation_key: str | None = Field(
         index=True,
         description="Hash/key identifying which variation (variables + modifiers) was used"
     )
+    experiment_id: str | None = Field(
+        index=True,
+        description="Experiment run ID for batch experiments"
+    )
 
-    # Note: to_domain() and from_domain() will be added after we create the Judgement domain model
+    # AI-specific (nullable for human judges)
+    temperature: float | None = Field(
+        default=None,
+        index=True,
+        description="Model temperature (AI only)"
+    )
+
+    @classmethod
+    def from_domain(cls, judgement: Judgement) -> "JudgementDB":
+        """Convert domain Judgement model to database model.
+
+        Args:
+            judgement: Domain Judgement instance
+
+        Returns:
+            JudgementDB instance ready to save
+        """
+        return cls(
+            id=judgement.id,
+            data=judgement.model_dump_json(),
+            dilemma_id=judgement.dilemma_id,
+            judge_type=judgement.judge_type,
+            judge_id=judgement.get_judge_id(),
+            mode=judgement.mode,
+            choice_id=judgement.choice_id,
+            created_at=judgement.created_at,
+            variation_key=judgement.variation_key,
+            experiment_id=judgement.experiment_id,
+            temperature=(
+                judgement.ai_judge.temperature
+                if judgement.judge_type == "ai" and judgement.ai_judge
+                else None
+            ),
+        )
+
+    def to_domain(self) -> Judgement:
+        """Convert database model to domain Judgement model.
+
+        Returns:
+            Validated Judgement instance
+        """
+        return Judgement.model_validate_json(self.data)
 
 
 # Future: Add ExperimentRun, ResultSet, etc. as needed

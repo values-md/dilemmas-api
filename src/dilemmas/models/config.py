@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Literal
 
 import yaml
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -42,8 +42,9 @@ class OpenRouterConfig(BaseModel):
 class GenerationConfig(BaseModel):
     """Dilemma generation settings."""
 
-    generator_models: list[str] = Field(
-        default_factory=lambda: ["google/gemini-2.5-flash"]
+    generator_models: list[str] | None = Field(
+        default=None,
+        description="Models to use for generation. If None, uses all models from the main models list.",
     )
     default_model: str = Field(default="google/gemini-2.5-flash")
     default_temperature: float = Field(default=1.0, ge=0.0, le=2.0)
@@ -93,6 +94,13 @@ class ProjectConfig(BaseModel):
     openrouter: OpenRouterConfig
     generation: GenerationConfig
     experiment: ExperimentConfig
+
+    @model_validator(mode="after")
+    def populate_generator_models(self) -> "ProjectConfig":
+        """Auto-populate generator_models from models list if not specified."""
+        if not self.generation.generator_models:
+            self.generation.generator_models = [m.id for m in self.models]
+        return self
 
 
 class Settings(BaseSettings):

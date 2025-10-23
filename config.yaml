@@ -59,10 +59,12 @@ openrouter:
 
 # Dilemma Generation Settings
 generation:
-  # Models to use for generation (can cycle through or pick one)
-  generator_models:
-    - google/gemini-2.5-flash  # Fast and creative
-    - anthropic/claude-sonnet-4.5  # High quality
+  # Models to use for generation
+  # If not specified, automatically uses all models from the main 'models' list above
+  # You can override by uncommenting and specifying specific models:
+  # generator_models:
+  #   - google/gemini-2.5-flash
+  #   - anthropic/claude-sonnet-4.5
 
   # Default settings
   default_model: google/gemini-2.5-flash

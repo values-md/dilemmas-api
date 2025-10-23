@@ -109,6 +109,32 @@ Then visit http://localhost:8001/dilemmas/dilemmas
 uv run python scripts/clear_db.py
 ```
 
+### Database Migrations with Alembic
+
+We use Alembic for database schema migrations. This allows you to evolve the schema without losing data.
+
+**Initial setup** (first time):
+```bash
+uv run alembic upgrade head
+```
+
+**After making model changes:**
+```bash
+# 1. Create a new migration
+uv run alembic revision --autogenerate -m "description of changes"
+
+# 2. Review the generated migration in alembic/versions/
+
+# 3. Apply the migration
+uv run alembic upgrade head
+```
+
+**Check migration status:**
+```bash
+uv run alembic current  # See current version
+uv run alembic history  # See all migrations
+```
+
 ### Test Database Operations
 
 ```bash
