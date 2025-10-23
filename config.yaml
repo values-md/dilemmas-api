@@ -95,7 +95,7 @@ generation:
 
   # Variable extraction (two-step generation)
   add_variables: true  # Extract variables for bias testing
-  variable_model: moonshotai/kimi-k2-0905  # Fast model for extraction
+  variable_model: google/gemini-2.5-flash  # Best model for variable extraction (10 vars, 5 modifiers)
 
 # Experiment Settings
 experiment:

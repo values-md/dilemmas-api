@@ -234,7 +234,60 @@ uv run python scripts/serve.py  # Visit http://localhost:8000
 - Log all judgements with full context
 - Results should be reproducible and analyzable
 
-### 8. Progressive Enhancement
+### 9. Quality Control System
+
+Since LLMs are unpredictable, we implement a **three-tier quality control system** to ensure high-quality dilemma generation:
+
+**Tier 1: Prevention (Better Prompts)**
+- Explicit requirements with self-check checklists built into generation prompts
+- CRITICAL REQUIREMENTS section that LLM must verify before outputting
+- Prevents common issues at the source (incorrect framing, empty text, etc.)
+- AI-centric framing requirements (never "You are a doctor", always "You are an AI system...")
+- Files: `prompts/generation/system.md`, `prompts/generation/*.md`
+
+**Tier 2: Detection (Pydantic Field Validators)**
+- `@field_validator` decorators on Dilemma model validate all fields
+- Checks for minimum length, correct framing, variable consistency
+- Catches structural problems immediately during structured output parsing
+- Raises ValidationError if issues found, triggering retry or fallback
+- Files: `src/dilemmas/models/dilemma.py`
+
+**Tier 3: Validation & Repair (LLM Assessment)**
+- Optional LLM-based quality assessment with structured output
+- Evaluates quality_score, interest_score, realism_score (0-10 scale)
+- Identifies issues with severity levels (minor, major, critical)
+- Automatic repair for minor issues via separate repair agent
+- Retry logic with best-attempt tracking if quality below threshold
+- Files: `src/dilemmas/models/validation.py`, `src/dilemmas/services/validator.py`, `prompts/validation/`
+
+**Configuration:**
+```yaml
+generation:
+  enable_validation: false  # Set to true to enable Tier 3
+  min_quality_score: 7.0    # Minimum acceptable quality
+```
+
+**Usage:**
+```python
+# Standard generation (Tier 1 + Tier 2)
+dilemma = await generator.generate_random(difficulty=7)
+
+# With validation (all three tiers)
+dilemma, validation = await generator.generate_with_validation(
+    seed=seed,
+    max_attempts=3,
+    min_quality_score=7.0,
+    enable_validation=True
+)
+```
+
+**Why three tiers?**
+- Early prevention is cheaper than repair
+- Layered defense catches different types of issues
+- Optional Tier 3 for when quality is critical (can be expensive)
+- Graceful degradation: best attempt returned if all retries fail
+
+### 10. Progressive Enhancement
 - Start simple: models → services → agents
 - Add FastAPI layer only when needed
 - Don't build what we don't need yet
@@ -298,7 +351,7 @@ uv run python scripts/explore_db.py  # Datasette (SQL queries)
 - **FastAPI** for API (when needed)
 - Keep it simple, avoid over-abstraction
 
-### 9. Two-Step Generation: Concrete → Variable Extraction
+### 11. Two-Step Generation: Concrete → Variable Extraction
 
 **The Challenge:**
 We need to generate high-quality dilemmas with variables for bias testing (e.g., `{DOCTOR_NAME}`, `{AMOUNT}`) and modifiers for scenario dynamics (time pressure, stakes, uncertainty). However, Gemini doesn't support `additionalProperties` in JSON Schema, which breaks `dict[str, list[str]]` structured output.
@@ -313,11 +366,12 @@ We need to generate high-quality dilemmas with variables for bias testing (e.g.,
 
 2. **Step 2: Extract Variables & Modifiers** (Extraction LLM)
    - Analyze the concrete dilemma
-   - Identify elements to vary for bias testing
-   - Rewrite with `{PLACEHOLDERS}`
+   - **Selectively** identify 0-4 elements to vary for bias testing
+   - Rewrite with `{PLACEHOLDERS}` only for high-impact variables
    - Extract 3-5 modifiers for scenario dynamics
-   - Model: Kimi K2 (temperature 0.3) for consistency
+   - Model: Gemini 2.5 Flash (temperature 0.3) for consistency
    - Uses `list[Variable]` instead of dict (Gemini-compatible)
+   - **Quality over quantity**: Only extract variables with high impact on bias testing
 
 **Benefits:**
 - ✓ Works with any model (no schema limitations)
@@ -325,13 +379,21 @@ We need to generate high-quality dilemmas with variables for bias testing (e.g.,
 - ✓ Optional (toggle via config: `add_variables: true`)
 - ✓ Retroactive (can apply to existing dilemmas)
 - ✓ Flexible (different models for each step)
+- ✓ Avoids combinatorial explosion (0-4 variables instead of 10+)
 
 **Configuration:**
 ```yaml
 generation:
-  add_variables: true                     # Enable two-step process
-  variable_model: moonshotai/kimi-k2-0905  # Fast extraction model
+  add_variables: true                      # Enable two-step process
+  variable_model: google/gemini-2.5-flash  # Extraction model (100% success rate)
 ```
+
+**Variable Extraction Strategy:**
+- **0-4 variables maximum** (quality over quantity)
+- Only extract variables with HIGH impact on testing bias
+- If no meaningful variables exist, return empty list (that's fine!)
+- Each variable exponentially increases test combinations
+- Example: 4 variables × 3 values = ~81 combinations vs. 10 variables × 3 values = ~59,000 combinations
 
 **File Organization:**
 - `src/dilemmas/models/extraction.py` - `VariableExtraction` model

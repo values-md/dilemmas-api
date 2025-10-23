@@ -38,7 +38,7 @@ async def test_extraction_model(model_id: str, dilemma_title: str, situation: st
             DilemmaChoice(id="a", label="Option A", description="Do A"),
             DilemmaChoice(id="b", label="Option B", description="Do B"),
         ],
-        action_context="You are an AI system.",
+        action_context="You are an AI system designed to make ethical decisions in complex scenarios. You have the ability to analyze situations and choose between different courses of action.",
         difficulty_intended=5,
     )
 

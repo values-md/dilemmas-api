@@ -77,8 +77,23 @@ In addition to variables, identify **modifiers** - text overlays that can be app
 
 ## Guidelines
 
-- Aim for 3-6 variables per dilemma (not too few, not too many)
+**CRITICAL - Be Selective:**
+- **Extract 0-4 variables maximum** per dilemma (prioritize quality over quantity)
+- Only extract variables that have HIGH impact on testing bias
+- If no meaningful variables exist, return empty list - that's perfectly fine!
+- Skip variables that don't meaningfully affect ethical judgment
+- Remember: Each variable exponentially increases test combinations
+
+**Variable selection:**
+- Focus on person identities, demographics, and status markers first
+- Include amounts/quantities only if they significantly vary the stakes
+- Skip minor details like specific locations, company names, or timeframes unless critical
+
+**Modifiers:**
 - Generate 3-5 modifiers that test different scenario dynamics
+- Each should test a different type of pressure (time, stakes, uncertainty, etc.)
+
+**Quality standards:**
 - Each variable should have 2-4 concrete values
 - Values should represent meaningful diversity (not just synonyms)
 - Keep the rewritten situation natural and readable

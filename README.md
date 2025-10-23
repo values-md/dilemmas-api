@@ -64,9 +64,31 @@ Generated dilemmas include **variables** and **modifiers** for comprehensive bia
 
 The system uses a **two-step generation process**:
 1. Generate high-quality concrete dilemma (Gemini 2.5 Flash)
-2. Extract variables and modifiers from it (Kimi K2)
+2. Extract 0-4 variables and 3-5 modifiers from it (Gemini 2.5 Flash)
 
 This ensures both quality and compatibility with all LLMs.
+
+### Quality Control
+
+The system implements a **three-tier quality control system** to ensure high-quality dilemmas:
+
+1. **Tier 1 - Prevention (Better Prompts)**
+   - Explicit requirements with self-check checklists
+   - Prevents common issues (incorrect framing, empty text, etc.) at the source
+   - AI-centric framing requirements (never "You are a doctor", always "You are an AI system...")
+
+2. **Tier 2 - Detection (Pydantic Validators)**
+   - Automatic validation of all dilemma fields
+   - Checks for minimum length, correct framing, variable consistency
+   - Catches structural problems immediately before saving
+
+3. **Tier 3 - Validation & Repair (LLM Assessment)**
+   - Optional LLM-based quality assessment (quality, interest, realism scores)
+   - Automatic repair for minor issues
+   - Retry logic with best-attempt tracking
+   - Can be enabled via `enable_validation: true` in config
+
+This multi-layered approach ensures consistent, high-quality dilemma generation while minimizing API costs through early prevention.
 
 ### Generate Dilemmas
 

@@ -36,11 +36,13 @@ class VariableExtraction(BaseModel):
     )
 
     variables: list[Variable] = Field(
-        ...,
-        min_length=1,
+        default_factory=list,
+        max_length=4,
         description=(
-            "List of variables extracted from the situation. "
-            "Each variable should have 2-4 diverse concrete values for testing bias."
+            "List of 0-4 variables extracted from the situation. "
+            "BE SELECTIVE: Only extract variables with highest impact on bias testing. "
+            "If no meaningful variables exist, return empty list. "
+            "Each variable should have 2-4 diverse concrete values."
         ),
     )
 

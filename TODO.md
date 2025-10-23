@@ -38,6 +38,12 @@
 - ✅ Fallback strategy: keep concrete text if extraction incomplete
 - ✅ Fixed prompts to prevent choices being embedded in situation text
 - ✅ Import of `re` module at top of generator.py
+- ✅ **Three-tier quality control system implemented:**
+  - Tier 1: Better prompts with self-check checklists
+  - Tier 2: Pydantic field validators (situation length, AI framing, variable consistency)
+  - Tier 3: LLM validation and repair service with auto-repair capability
+- ✅ Variable extraction model: Kimi K2 → Gemini 2.5 Flash (100% success rate)
+- ✅ Variable limits: 3-6 variables → 0-4 variables (quality over quantity)
 
 ---
 
