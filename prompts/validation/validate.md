@@ -33,6 +33,9 @@ Check that all required fields are present and substantive:
 - [ ] question is clear and ends with "?"
 - [ ] at least 2 distinct choices
 - [ ] action_context describes the AI's role
+- [ ] Each choice has `tool_name` set (not None/null)
+- [ ] Each `tool_name` matches a tool in `available_tools`
+- [ ] Number of choices equals number of available_tools
 
 **List any issues found** (use severity: minor, major, or critical)
 
