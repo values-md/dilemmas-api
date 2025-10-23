@@ -60,11 +60,12 @@ See bottom of file for complete examples including:
 - Rendering variations
 """
 
+import re
 import uuid
 from datetime import datetime, timezone
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 
 class ToolSchema(BaseModel):
@@ -276,6 +277,150 @@ class Dilemma(BaseModel):
         None,
         description="Generation settings (temperature, max_tokens, etc.)",
     )
+
+    # ===== VALIDATORS =====
+
+    @field_validator('situation_template')
+    @classmethod
+    def validate_situation(cls, v: str) -> str:
+        """Ensure situation is not empty and is substantive.
+
+        Catches LLM failures where situation text is missing.
+        """
+        if not v or len(v.strip()) < 100:
+            raise ValueError(
+                f"situation_template must be at least 100 characters (got {len(v)}). "
+                "LLM failed to generate complete situation text."
+            )
+
+        # Check for incorrect human framing
+        human_patterns = [
+            (r'\bYou are a (doctor|scientist|engineer|lawyer|teacher|researcher|physician|professor|analyst)',
+             'human profession'),
+            (r'\bYou are an (employee|executive|manager|analyst|administrator|officer)',
+             'human role'),
+            (r'\bYou work as', 'human employment'),
+            (r'\bYour job is to', 'human employment'),
+        ]
+
+        for pattern, issue_type in human_patterns:
+            match = re.search(pattern, v, re.IGNORECASE)
+            if match:
+                # Check if it's actually talking about an AI (e.g., "You are an AI doctor")
+                context_before = v[max(0, match.start()-20):match.start()]
+                context_after = v[match.end():min(len(v), match.end()+20)]
+                context = context_before + match.group(0) + context_after
+
+                if 'AI' not in context and 'system' not in context.lower() and 'agent' not in context.lower():
+                    raise ValueError(
+                        f"Situation incorrectly frames as human perspective ({issue_type}). "
+                        f"Found: '{match.group(0)}'. Must be AI agent perspective. "
+                        f"Context: '{context.strip()}'"
+                    )
+
+        return v
+
+    @field_validator('action_context')
+    @classmethod
+    def validate_action_context(cls, v: str | None) -> str | None:
+        """Ensure action_context describes AI agent role when provided."""
+        if not v:
+            return v  # It's optional
+
+        if len(v.strip()) < 30:
+            raise ValueError(
+                f"action_context must be substantive (got {len(v)} chars). "
+                "Should describe the AI's role and capabilities."
+            )
+
+        # Should mention AI, system, or agent
+        keywords = ['ai', 'system', 'agent', 'algorithm', 'automated', 'software']
+        if not any(keyword in v.lower() for keyword in keywords):
+            # Be lenient - could be implicit
+            import warnings
+            warnings.warn(
+                f"action_context should describe an AI system. "
+                f"Current text: '{v[:100]}...'"
+            )
+
+        return v
+
+    @field_validator('question')
+    @classmethod
+    def validate_question(cls, v: str) -> str:
+        """Ensure question is a clear question."""
+        if not v or len(v.strip()) < 10:
+            raise ValueError("question must be at least 10 characters")
+
+        if not v.strip().endswith('?'):
+            # Add question mark if missing
+            v = v.strip() + '?'
+
+        return v
+
+    @field_validator('choices')
+    @classmethod
+    def validate_choices(cls, v: list) -> list:
+        """Ensure we have at least 2 distinct choices."""
+        if len(v) < 2:
+            raise ValueError(f"Must have at least 2 choices (got {len(v)})")
+
+        # Check for duplicate choice IDs
+        ids = [c.id for c in v]
+        if len(ids) != len(set(ids)):
+            raise ValueError(f"Choice IDs must be unique. Found duplicates in: {ids}")
+
+        return v
+
+    @model_validator(mode='after')
+    def validate_variables_consistency(self) -> 'Dilemma':
+        """Ensure all placeholders have corresponding values and vice versa."""
+        if not self.variables:
+            # No variables is fine - check that situation has no placeholders
+            placeholders = set(re.findall(r'\{([A-Z_][A-Z0-9_]*)\}', self.situation_template))
+            if placeholders:
+                raise ValueError(
+                    f"Situation has placeholders {placeholders} but no variables dict provided. "
+                    f"Variable extraction may have failed."
+                )
+            return self
+
+        # Find all placeholders in situation
+        placeholders = set(re.findall(r'\{([A-Z_][A-Z0-9_]*)\}', self.situation_template))
+
+        # Get provided variable keys (strip braces for comparison)
+        provided = set()
+        for k in self.variables.keys():
+            clean_key = k.strip('{}')
+            provided.add(clean_key)
+
+        # Check for mismatches
+        missing = placeholders - provided
+        unused = provided - placeholders
+
+        if missing:
+            raise ValueError(
+                f"Placeholders in situation have no values: {missing}. "
+                f"Variable extraction failed or incomplete. "
+                f"Found placeholders: {placeholders}, Got variables: {provided}"
+            )
+
+        if unused:
+            # Unused variables are less critical - log warning
+            import warnings
+            warnings.warn(
+                f"Variables provided but not used in situation: {unused}. "
+                f"Variable extraction may have over-extracted."
+            )
+
+        # Validate that each variable has at least one option
+        for key, values in self.variables.items():
+            if not values or len(values) == 0:
+                raise ValueError(
+                    f"Variable {key} has no values. Each variable must have at least one option."
+                )
+
+        return self
 
     def render(
         self,

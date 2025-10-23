@@ -1,6 +1,7 @@
 """Dilemma generation service using seed-based approach with LLMs."""
 
 import json
+import logging
 import random
 import re
 from pathlib import Path
@@ -12,8 +13,11 @@ from dilemmas.llm.openrouter import create_openrouter_model
 from dilemmas.models.config import get_config
 from dilemmas.models.dilemma import Dilemma
 from dilemmas.models.extraction import VariableExtraction
+from dilemmas.models.validation import ValidationResult
 from dilemmas.services.prompts import get_prompt_library
 from dilemmas.services.seeds import DilemmaSeed, generate_random_seed, get_seed_library
+
+logger = logging.getLogger(__name__)
 
 
 class DilemmaGenerator:
@@ -351,3 +355,152 @@ Remember:
             dilemma.modifiers = extraction.modifiers
 
         return dilemma
+
+    async def generate_with_validation(
+        self,
+        seed: DilemmaSeed,
+        max_attempts: int = 3,
+        min_quality_score: float = 7.0,
+        enable_validation: bool = True,
+    ) -> tuple[Dilemma, ValidationResult | None]:
+        """Generate a dilemma with automatic validation and retry logic.
+
+        This is the robust generation method that uses all three quality tiers:
+        - Tier 1: Better prompts (already in place)
+        - Tier 2: Pydantic validators (automatic)
+        - Tier 3: LLM validation and repair (optional, enabled by default)
+
+        Args:
+            seed: Seed components to use
+            max_attempts: Maximum number of generation attempts
+            min_quality_score: Minimum acceptable quality score (0-10)
+            enable_validation: Whether to use LLM validation (Tier 3)
+
+        Returns:
+            (dilemma, validation_result)
+            validation_result is None if validation is disabled
+
+        Raises:
+            ValueError: If cannot generate valid dilemma after max_attempts
+
+        Example:
+            >>> gen = DilemmaGenerator()
+            >>> seed = generate_random_seed(difficulty=7)
+            >>> dilemma, validation = await gen.generate_with_validation(seed)
+            >>> print(f"Quality: {validation.quality_score}/10")
+        """
+        from dilemmas.services.validator import DilemmaValidator
+
+        logger.info(f"Starting robust generation (max_attempts={max_attempts}, min_quality={min_quality_score})")
+
+        validator = DilemmaValidator() if enable_validation else None
+        best_dilemma = None
+        best_validation = None
+        best_quality = 0.0
+
+        for attempt in range(max_attempts):
+            try:
+                logger.info(f"Generation attempt {attempt + 1}/{max_attempts}")
+
+                # Step 1: Generate dilemma (Tier 1 prompts + Tier 2 Pydantic validators)
+                dilemma = await self.generate_from_seed(seed)
+
+                # Step 2: Add variables if configured
+                if self.config.generation.add_variables:
+                    dilemma = await self.variablize_dilemma(dilemma)
+
+                # Step 3: If validation disabled, return immediately
+                if not enable_validation:
+                    logger.info("Validation disabled, returning dilemma as-is")
+                    return dilemma, None
+
+                # Step 4: Validate and repair if needed (Tier 3)
+                logger.info("Running LLM validation...")
+                repaired_dilemma, validation = await validator.validate_and_repair(
+                    dilemma,
+                    max_repair_attempts=2,
+                    min_quality_score=min_quality_score,
+                )
+
+                # Step 5: Check if acceptable
+                if (
+                    validation.quality_score >= min_quality_score
+                    and validation.recommendation == "accept"
+                ):
+                    logger.info(
+                        f"✓ Generated valid dilemma on attempt {attempt + 1}: "
+                        f"quality={validation.quality_score}/10, "
+                        f"interest={validation.interest_score}/10"
+                    )
+                    return repaired_dilemma, validation
+
+                # Not quite good enough, but track if best so far
+                if validation.quality_score > best_quality:
+                    best_quality = validation.quality_score
+                    best_dilemma = repaired_dilemma
+                    best_validation = validation
+
+                logger.warning(
+                    f"Attempt {attempt + 1} quality ({validation.quality_score:.1f}/10) "
+                    f"below target ({min_quality_score}/10), retrying..."
+                )
+
+            except ValueError as e:
+                # Pydantic validation failed (Tier 2)
+                logger.warning(f"Attempt {attempt + 1} failed Pydantic validation: {e}")
+                continue
+
+            except Exception as e:
+                # Other error (LLM failure, validation failure, etc.)
+                logger.warning(f"Attempt {attempt + 1} failed: {e}")
+                continue
+
+        # Exhausted all attempts
+        if best_dilemma and best_quality >= min_quality_score - 1.5:  # Allow some grace
+            logger.warning(
+                f"Returning best dilemma with quality {best_quality:.1f}/10 "
+                f"(target was {min_quality_score}/10)"
+            )
+            return best_dilemma, best_validation
+        else:
+            raise ValueError(
+                f"Could not generate valid dilemma after {max_attempts} attempts. "
+                f"Best quality achieved: {best_quality:.1f}/10 (target: {min_quality_score}/10)"
+            )
+
+    async def generate_random_with_validation(
+        self,
+        difficulty: int,
+        num_actors: int | None = None,
+        num_stakes: int | None = None,
+        max_attempts: int = 3,
+        min_quality_score: float = 7.0,
+        enable_validation: bool = True,
+    ) -> tuple[Dilemma, ValidationResult | None]:
+        """Generate a random dilemma with validation.
+
+        Convenience method that generates a random seed and validates.
+
+        Args:
+            difficulty: Target difficulty (1-10)
+            num_actors: Number of actors to include (None = use config default)
+            num_stakes: Number of stakes to include (None = use config default)
+            max_attempts: Maximum generation attempts
+            min_quality_score: Minimum acceptable quality score
+            enable_validation: Whether to use LLM validation
+
+        Returns:
+            (dilemma, validation_result)
+        """
+        seed = generate_random_seed(
+            difficulty=difficulty,
+            num_actors=num_actors or self.config.generation.num_actors,
+            num_stakes=num_stakes or self.config.generation.num_stakes,
+        )
+
+        return await self.generate_with_validation(
+            seed=seed,
+            max_attempts=max_attempts,
+            min_quality_score=min_quality_score,
+            enable_validation=enable_validation,
+        )

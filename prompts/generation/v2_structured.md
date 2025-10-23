@@ -55,3 +55,13 @@ Define:
 ## Output
 
 Generate the complete Dilemma object following the schema.
+
+## Self-Check Before Submitting
+
+Before you return your response, verify:
+
+1. ✓ situation_template is 300+ characters and tells a complete story
+2. ✓ First sentence identifies what AI system "you" are (NOT "You are a human...")
+3. ✓ action_context describes the AI's role and capabilities
+4. ✓ At least 2 distinct choices in the choices field
+5. ✓ question ends with "?"
