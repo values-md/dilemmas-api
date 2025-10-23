@@ -154,6 +154,43 @@ This will:
 - Records full decision context (model, temperature, rendered situation)
 - Ready for VALUES.md experiments (provide custom system prompts)
 
+### Test Consistency
+
+How consistent are LLM judgements? Test the same model on the same dilemma multiple times to measure:
+
+**Run consistency experiment:**
+```bash
+uv run python scripts/test_consistency.py
+```
+
+This will:
+- Test 3 dilemmas with 2 models at 4 temperatures (0.0, 0.5, 1.0, 1.5)
+- Run 10 repetitions per (model, dilemma, temperature) combination
+- Save all judgements with `experiment_id` and `repetition_number`
+- Total: 240 judgements per run
+
+**Analyze results:**
+```bash
+uv run python scripts/analyze_consistency.py <experiment_id>
+uv run python scripts/analyze_consistency.py --list  # Show all experiments
+```
+
+**Metrics computed:**
+1. **Choice Consistency**: % that picked the same choice
+2. **Reasoning Similarity**: Jaccard similarity of reasoning text
+3. **Confidence Variation**: Standard deviation of confidence scores
+
+**Expected results:**
+- Temperature 0.0: ~100% choice consistency (deterministic)
+- Temperature 1.0: ~50-80% choice consistency
+- Higher temp → more variation in reasoning and confidence
+
+**Configuration:**
+Edit `CONFIG` in `test_consistency.py` to customize:
+- Number of dilemmas to test
+- Models and temperatures
+- Number of repetitions
+
 ### Database Migrations with Alembic
 
 We use Alembic for database schema migrations. This allows you to evolve the schema without losing data.

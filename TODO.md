@@ -10,6 +10,8 @@
 - ✅ System prompt support (VALUES.md ready!)
 - ✅ Auto-variable substitution
 - ✅ Clean baseline testing (no system prompt)
+- ✅ Consistency testing framework (experiment_id + repetition_number)
+- ✅ Analysis tools for measuring choice consistency & reasoning similarity
 
 ---
 
@@ -67,6 +69,15 @@
 - ✅ Test script for running experiments
 - ✅ Consistent UUID4 IDs (excluded from LLM schema)
 - ✅ Updated clear_db.py to also clear judgements
+
+**Evening - Consistency Testing:**
+- ✅ Added `repetition_number` field to Judgement model and database
+- ✅ Database migration for new field with index
+- ✅ `test_consistency.py` - Run N repetitions of same (model, dilemma, temperature)
+- ✅ `analyze_consistency.py` - Compute choice consistency, reasoning similarity, confidence variation
+- ✅ Metrics: Jaccard similarity for reasoning, std dev for confidence
+- ✅ Temperature 0 determinism testing built-in
+- ✅ Documentation updated with consistency testing workflow
 
 ---
 

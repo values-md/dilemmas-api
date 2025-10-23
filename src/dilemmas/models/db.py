@@ -141,6 +141,11 @@ class JudgementDB(SQLModel, table=True):
         index=True,
         description="Experiment run ID for batch experiments"
     )
+    repetition_number: int | None = Field(
+        default=None,
+        index=True,
+        description="If same config repeated multiple times, which repetition (1-based)"
+    )
 
     # AI-specific (nullable for human judges)
     temperature: float | None = Field(
@@ -182,6 +187,7 @@ class JudgementDB(SQLModel, table=True):
             created_at=judgement.created_at,
             variation_key=judgement.variation_key,
             experiment_id=judgement.experiment_id,
+            repetition_number=judgement.repetition_number,
             temperature=(
                 judgement.ai_judge.temperature
                 if judgement.judge_type == "ai" and judgement.ai_judge
