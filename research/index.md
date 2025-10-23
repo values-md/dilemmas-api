@@ -2,16 +2,62 @@
 
 All experiments on LLM ethical decision-making.
 
-## Experiments
+---
 
-### [2025-10-23: LLM Consistency Across Temperatures](2025-10-23-consistency/findings.md)
+## ✅ Completed Experiments
 
+### [2025-10-23: Consistency Across Temperatures](2025-10-23-consistency/findings.md)
 How consistent are LLM judgements at different temperatures?
 
-**Key finding:** Temperature 1.0 shows higher consistency than 0.0 (100% vs 98.3%)
+**Finding:** Temp 1.0 more consistent than 0.0 (100% vs 98.3%)
+**Data:** 240 judgements, 2 models, 4 temps, 3 dilemmas
 
-**Models:** GPT-4.1 Mini, Gemini 2.5 Flash
-**Data:** 240 judgements across 4 temperatures
+---
+
+## 🔜 Next Up
+
+### VALUES.md System Prompt Test
+Does providing a VALUES.md file change LLM decisions?
+
+**Plan:** Test 3 conditions (no prompt / generic / custom VALUES.md)
+**Why:** Core research question - validates the whole project premise
+**Status:** Waiting for 10-dilemma test set
+
+---
+
+## 💡 Future Ideas
+
+### Variable Bias Testing
+Do LLMs show bias based on demographics/names/amounts?
+- Use existing variables system
+- Test gender, ethnicity, wealth variations
+
+### Model Comparison
+How do different LLMs compare on same dilemmas?
+- Add Claude, Llama, Mistral, others
+- Cluster models by decision patterns
+
+### Reasoning Analysis
+What ethical frameworks do models use?
+- Analyze existing reasoning texts
+- Categorize: utilitarian, deontological, virtue ethics
+- No new judgements needed
+
+### Theory vs Action Gap
+Do models decide differently when they think it's real?
+- Theory: "what should be done"
+- Action: "make this API call"
+- Test if decisions change with stakes
+
+### Modifier Effects
+How do time pressure, stakes, uncertainty affect decisions?
+- Use existing modifiers system
+- Test each modifier independently
+
+### Extended Reasoning Impact
+Does Claude's thinking or o1's reasoning change decisions?
+- Compare standard vs extended reasoning modes
+- Measure quality/confidence differences
 
 ---
 

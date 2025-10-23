@@ -95,7 +95,7 @@ generation:
 
   # Variable extraction (two-step generation)
   add_variables: true  # Extract variables for bias testing
-  variable_model: google/gemini-2.5-flash  # Best model for variable extraction (10 vars, 5 modifiers)
+  variable_model: openai/gpt-4.1-mini  # GPT-4.1 Mini for structured output reliability
 
 # Experiment Settings
 experiment:

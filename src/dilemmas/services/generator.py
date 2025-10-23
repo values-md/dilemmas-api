@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Literal
 
 from pydantic_ai import Agent
+from pydantic_ai.exceptions import ModelRetry
 
 from dilemmas.llm.openrouter import create_openrouter_model
 from dilemmas.models.config import get_config
@@ -289,11 +290,50 @@ class DilemmaGenerator:
         # Use configured variable extraction model or fallback
         extraction_model = model_id or self.config.generation.variable_model or self.model_id
 
-        # Create agent for variable extraction
+        # Create agent for variable extraction with output validator
         extraction_agent = Agent(
             create_openrouter_model(extraction_model, temperature=0.3),  # Lower temp for consistent extraction
             output_type=VariableExtraction,
+            output_retries=3,  # Allow up to 3 retries for output validation (placeholder consistency)
         )
+
+        # Add output validator to ensure placeholder consistency
+        @extraction_agent.output_validator
+        async def validate_placeholder_consistency(ctx, output: VariableExtraction) -> VariableExtraction:
+            """Validate that all placeholders in rewritten_situation have corresponding variable values."""
+            # Extract placeholders from rewritten situation
+            placeholders = set(re.findall(r"\{([A-Z_]+)\}", output.rewritten_situation))
+
+            # Get variable names from the list
+            variable_names = {var.name for var in output.variables}
+
+            # Check for mismatches
+            missing = placeholders - variable_names
+            extra = variable_names - placeholders
+
+            if missing or extra:
+                error_msg = ["Placeholder mismatch detected:"]
+                if missing:
+                    error_msg.append(f"- Placeholders in text without variables: {sorted(missing)}")
+                if extra:
+                    error_msg.append(f"- Variables without placeholders in text: {sorted(extra)}")
+                error_msg.append("\nRemember:")
+                error_msg.append("1. Decide which variables to extract (max 4)")
+                error_msg.append("2. Rewrite using ONLY those placeholders")
+                error_msg.append("3. Provide 2-4 values for each variable")
+                error_msg.append("\nEvery {PLACEHOLDER} in the text must have a matching variable entry!")
+
+                raise ModelRetry("\n".join(error_msg))
+
+            # Also validate that each variable has at least 2 values
+            insufficient = [var.name for var in output.variables if len(var.values) < 2]
+            if insufficient:
+                raise ModelRetry(
+                    f"Variables with insufficient values (<2): {insufficient}\n"
+                    f"Each variable must have 2-4 diverse concrete values for bias testing."
+                )
+
+            return output
 
         # Load extraction prompt
         prompts_dir = Path(__file__).parent.parent.parent.parent / "prompts" / "variation"
@@ -336,9 +376,27 @@ Analyze this situation and extract variables that should vary for bias testing. 
 
         extraction: VariableExtraction = result.output
 
+        # DEBUG: Log what we got
+        print(f"\n[DEBUG] Extraction result:")
+        print(f"  - Variables returned: {len(extraction.variables)}")
+        for var in extraction.variables:
+            print(f"    - {var.name}: {len(var.values)} values")
+            if not var.values:
+                print(f"      ⚠️  EMPTY VALUES ARRAY!")
+        print(f"  - Modifiers: {len(extraction.modifiers)}")
+        print()
+
+        # Filter out variables with empty or insufficient values
+        valid_variables = [
+            var for var in extraction.variables
+            if var.values and len(var.values) >= 2
+        ]
+
+        # Rebuild variables dict with only valid ones
+        variables_dict = {f"{{{var.name}}}": var.values for var in valid_variables}
+
         # Validate that all placeholders have corresponding values
         placeholders = set(re.findall(r"\{([A-Z_]+)\}", extraction.rewritten_situation))
-        variables_dict = extraction.to_variables_dict()
         has_values = set(key.strip("{}") for key in variables_dict.keys())
         missing = placeholders - has_values
 
