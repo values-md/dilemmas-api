@@ -84,6 +84,13 @@ class DilemmaJudge:
             raise NotImplementedError("Action mode not yet implemented - start with theory mode")
 
         # Step 1: Render the situation with variables
+        # If dilemma has variables but no specific values provided, use first value of each
+        if variable_values is None and dilemma.variables:
+            variable_values = {
+                placeholder: values[0]
+                for placeholder, values in dilemma.variables.items()
+            }
+
         rendered_situation = self._render_situation(dilemma, variable_values, modifier_indices)
 
         # Step 2: Build the prompt

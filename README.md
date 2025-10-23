@@ -128,8 +128,31 @@ Then visit http://localhost:8001/dilemmas/dilemmas
 
 **Clear the database** (start over):
 ```bash
-uv run python scripts/clear_db.py
+uv run python scripts/clear_db.py  # Deletes all dilemmas AND judgements
 ```
+
+### Run Judgements
+
+**Test LLMs on your dilemmas:**
+```bash
+uv run python scripts/test_judge.py
+```
+
+This will:
+- Load all dilemmas from the database
+- Run GPT-4.1 Mini on each dilemma (theory mode)
+- Save judgements to the database with full metadata
+- Show summary with choices and confidence levels
+
+**View judgements:**
+- Open http://localhost:8000/judgements in the web interface
+- Or use Datasette: http://localhost:8001/dilemmas/judgements
+
+**Key Features:**
+- No system prompt by default (clean baseline)
+- Auto-fills variables with first value if dilemma has them
+- Records full decision context (model, temperature, rendered situation)
+- Ready for VALUES.md experiments (provide custom system prompts)
 
 ### Database Migrations with Alembic
 

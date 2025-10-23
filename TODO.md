@@ -1,6 +1,15 @@
 # VALUES.md Dilemmas Project - Development Plan
 
-## Current Status: ✅ Step 3 Complete → Ready for Step 4
+## Current Status: ✅ Step 5 Complete → Ready for Step 4 & 6
+
+**What we built today (2025-10-23):**
+- ✅ Judgement model and database schema
+- ✅ Judge service (theory mode)
+- ✅ Test script for running LLMs on dilemmas
+- ✅ Web interface for viewing judgements
+- ✅ System prompt support (VALUES.md ready!)
+- ✅ Auto-variable substitution
+- ✅ Clean baseline testing (no system prompt)
 
 ---
 
@@ -32,7 +41,9 @@
 - FastAPI web interface for browsing dilemmas
 - All prompts updated and working correctly
 
-**Recent fixes (2025-10-23):**
+**Recent fixes and improvements (2025-10-23):**
+
+**Morning - Generation System:**
 - ✅ Fixed schema descriptions to prevent LLMs from using placeholders in Step 1
 - ✅ Added validation to ensure all placeholders have matching values
 - ✅ Fallback strategy: keep concrete text if extraction incomplete
@@ -45,12 +56,24 @@
 - ✅ Variable extraction model: Kimi K2 → Gemini 2.5 Flash (100% success rate)
 - ✅ Variable limits: 3-6 variables → 0-4 variables (quality over quantity)
 
+**Afternoon - Judgement System:**
+- ✅ Complete Judgement model with AI/Human discriminated union
+- ✅ System prompt fields for VALUES.md research (key feature!)
+- ✅ Database migration for judgements table
+- ✅ Judge service with theory mode
+- ✅ Auto-variable substitution (uses first value by default)
+- ✅ No misleading default system prompt (clean baseline)
+- ✅ Web interface with judgements list and detail pages
+- ✅ Test script for running experiments
+- ✅ Consistent UUID4 IDs (excluded from LLM schema)
+- ✅ Updated clear_db.py to also clear judgements
+
 ---
 
 ## 🎯 Next Steps
 
 ### 4. Create Standard Test Set (~50 dilemmas) 🔜
-**Current priority - ready to start tomorrow**
+**Current priority**
 
 **Tasks:**
 - [ ] Generate 50 high-quality dilemmas with good diversity
@@ -68,19 +91,24 @@
   - Tag appropriately in database
   - Document the composition (difficulty distribution, domains, etc.)
 
-### 5. Set up JUDGEMENT Model 📝
-**Next after test set is ready**
+### 5. Set up JUDGEMENT Model ✅
+**COMPLETE!**
 
-- [ ] Create `Judgement` Pydantic model
-  - Link to dilemma_id
-  - Capture: choice_id, reasoning, confidence
+- [x] Create `Judgement` Pydantic model
+  - Links to dilemma_id
+  - Captures: choice_id, reasoning, confidence
   - Model/temperature/settings used
   - Mode (theory vs action)
   - Timestamp
-- [ ] Add database table
-- [ ] Create judgment service
+  - **System prompt support for VALUES.md testing!**
+- [x] Add database table (via Alembic migration)
+- [x] Create judgment service
   - Theory mode: LLM explains what should be done
-  - Action mode: LLM believes it's real, calls tools
+  - Action mode: Not yet implemented (future)
+  - Auto-fills variables with first value
+  - No system prompt by default (clean baseline)
+- [x] Web interface for viewing judgements
+- [x] Test script: `scripts/test_judge.py`
 
 ### 6. Run Experiments 🧪
 - [ ] Design experiment matrix (models × temperatures × modes)
