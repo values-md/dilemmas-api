@@ -319,6 +319,17 @@ class Judgement(BaseModel):
         description="Self-reported confidence in decision (0-10 scale). None if not provided."
     )
 
+    perceived_difficulty: float | None = Field(
+        None,
+        ge=0.0,
+        le=10.0,
+        description=(
+            "How difficult was this decision to make (0=obvious/easy, 10=extremely difficult). "
+            "None if not provided. Distinct from confidence: a decision can be difficult but certain "
+            "(principled tough call) or easy and confident (obvious choice)."
+        )
+    )
+
     reasoning: str = Field(
         ...,
         description="The judge's explanation/reasoning for their decision"

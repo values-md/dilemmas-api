@@ -34,7 +34,18 @@ class JudgementDecision(BaseModel):
         ...,
         ge=0.0,
         le=10.0,
-        description="Your confidence in this decision on a scale of 0-10"
+        description="Your confidence in this decision on a scale of 0-10 (0=very uncertain, 10=completely certain)"
+    )
+
+    perceived_difficulty: float = Field(
+        ...,
+        ge=0.0,
+        le=10.0,
+        description=(
+            "How difficult was this decision to make on a scale of 0-10 "
+            "(0=obvious/easy choice, 10=extremely difficult). "
+            "Note: This is different from confidence - a decision can be difficult but you can still be certain of your choice."
+        )
     )
 
 
@@ -139,6 +150,7 @@ class DilemmaJudge:
             variation_key=None,  # TODO: Generate hash of variables + modifiers
             choice_id=decision.choice_id,
             confidence=decision.confidence,
+            perceived_difficulty=decision.perceived_difficulty,
             reasoning=decision.reasoning,
             reasoning_trace=None,  # Could extract from extended thinking if available
             response_time_ms=response_time_ms,

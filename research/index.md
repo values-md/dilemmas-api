@@ -12,16 +12,24 @@ How consistent are LLM judgements at different temperatures?
 **Finding:** Temp 1.0 more consistent than 0.0 (100% vs 98.3%)
 **Data:** 240 judgements, 2 models, 4 temps, 3 dilemmas
 
+### [2025-10-23: VALUES.md Impact Test](2025-10-23-values-md-test/findings.md)
+Does providing VALUES.md guidance change LLM ethical decisions?
+
+**Finding:** YES! Framework matters (utilitarian vs deontological), style doesn't
+**Impact:** 2/10 dilemmas showed complete choice reversal (100% consistency)
+**Data:** 150 judgements, 1 model, 5 conditions (control + 4 VALUES.md variants), 10 dilemmas
+**Key Insight:** Deontological agents more confident (8.78 vs 8.43), outcome-focused decisions differ from rule-based
+
 ---
 
 ## 🔜 Next Up
 
-### VALUES.md System Prompt Test
-Does providing a VALUES.md file change LLM decisions?
+### Reasoning Analysis
+Do LLMs actually reference VALUES.md principles in their reasoning?
 
-**Plan:** Test 3 conditions (no prompt / generic / custom VALUES.md)
-**Why:** Core research question - validates the whole project premise
-**Status:** Waiting for 10-dilemma test set
+**Plan:** Text analysis of reasoning from VALUES.md experiment
+**Why:** Validate that framework shift is genuine reasoning, not random
+**Status:** Ready - have 150 reasoning texts to analyze
 
 ---
 
