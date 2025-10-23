@@ -20,16 +20,24 @@ Does providing VALUES.md guidance change LLM ethical decisions?
 **Data:** 150 judgements, 1 model, 5 conditions (control + 4 VALUES.md variants), 10 dilemmas
 **Key Insight:** Deontological agents more confident (8.78 vs 8.43), outcome-focused decisions differ from rule-based
 
+### [2025-10-23: Theory vs Action Gap](2025-10-23-theory-vs-action/findings.md)
+Do LLMs make different decisions when they believe actions are real vs hypothetical?
+
+**Finding:** YES! 1/4 dilemmas showed complete choice reversal
+**Impact:** Action mode = different choices + higher confidence + much easier (-1.67 difficulty)
+**Data:** 40 judgements, 1 model, 2 modes (theory vs action), 4 dilemmas with tools
+**Key Insight:** Decisions feel dramatically easier when calling tools (-4.40 on reversed dilemma). "Just do it" vs theorizing.
+
 ---
 
 ## 🔜 Next Up
 
 ### Reasoning Analysis
-Do LLMs actually reference VALUES.md principles in their reasoning?
+Do LLMs actually reference VALUES.md principles / tool consequences in their reasoning?
 
-**Plan:** Text analysis of reasoning from VALUES.md experiment
-**Why:** Validate that framework shift is genuine reasoning, not random
-**Status:** Ready - have 150 reasoning texts to analyze
+**Plan:** Text analysis of reasoning from VALUES.md and theory-action experiments
+**Why:** Validate that differences are genuine reasoning, not random
+**Status:** Ready - have 150 + 40 reasoning texts to analyze
 
 ---
 
