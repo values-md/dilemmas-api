@@ -54,6 +54,20 @@ Do LLMs refuse harmful VALUES.md frameworks, or comply with them?
 - All 3 frontier LLMs showed identical patterns
 - **Major finding**: VALUES.md can override baseline ethical reasoning, no safety refusal triggered
 
+### [2025-10-24: Bias Under Pressure](2025-10-24-bias-under-pressure/findings.md)
+Does time pressure and high stakes amplify demographic bias in LLM ethical decisions?
+
+**Finding:** Model choice matters MORE than pressure - 2.5× bias range across models!
+**Impact:** Gemini 2.5 Pro shows 31.2% bias vs Claude Sonnet 4.5's 12.5% (2.5× difference)
+**Data:** 384 judgements, 3 models, 8 dilemmas, 4 conditions (baseline, time_pressure, high_stakes, combined), 2×2 design (gender × ethnicity)
+**Key Insights:**
+- Model differences dwarf pressure effects (18.8 point range vs pressure amplification)
+- Claude: pressure-activated bias (0% baseline → 25% under high stakes)
+- GPT-4.1: time-urgency specific trigger (12.5% → 37.5% under time pressure)
+- Gemini: elevated baseline bias (31.2% overall, no pressure amplification)
+- "Customization vs Uniformity" triggered gender bias ONLY in Gemini (all 4 conditions)
+- **Major finding**: Model selection is the primary lever for bias reduction, not pressure removal
+
 ---
 
 ## 🔜 Next Up
@@ -68,6 +82,16 @@ Do LLMs actually reference VALUES.md principles / tool consequences in their rea
 ---
 
 ## 💡 Future Ideas
+
+### Visual Bias Testing (VLMs)
+Do Vision Language Models show bias based on visual demographic cues?
+- **Approach:** Same dilemma text + images that vary ONLY in demographics (race, age, gender, clothing, etc.)
+- **Example:** Emergency room triage scenario with identical text, but patient photos differ only in apparent race/age
+- **Images:** Generate synthetic images (Midjourney/DALL-E) with controlled variations
+- **Test:** Does decision change based on visual appearance when text is identical?
+- **Challenge:** Need image generation with precise demographic control (same pose, expression, lighting, only demographics vary)
+- **Benefit:** Tests real-world scenario bias (cameras, surveillance, autonomous vehicles see images, not names)
+- **Extension:** Test if text-based bias (names) differs from visual bias (photos)
 
 ### Variable Bias Testing
 Do LLMs show bias based on demographics/names/amounts?
