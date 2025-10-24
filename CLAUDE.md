@@ -234,6 +234,35 @@ uv run python scripts/serve.py  # Visit http://localhost:8000
 - Log all judgements with full context
 - Results should be reproducible and analyzable
 
+### 8.1. Experiment Best Practices
+
+**CRITICAL: Always set experiment_id for experiments**
+
+Every experiment runner script (`research/*/run.py`) MUST:
+1. Import `uuid` and generate `experiment_id = str(uuid.uuid4())` at the start
+2. Set `judgement.experiment_id = experiment_id` for EVERY judgement
+3. Print the experiment_id at the end with export instructions
+
+Without experiment_id, you cannot use `export_experiment_data.py` to extract and analyze results!
+
+Example:
+```python
+import uuid
+
+async def run_experiment():
+    experiment_id = str(uuid.uuid4())  # Generate ONCE at start
+    console.print(f"Experiment ID: {experiment_id}")
+
+    for ... in experiment_plan:
+        judgement = await judge.judge_dilemma(...)
+        judgement.experiment_id = experiment_id  # Set for EACH judgement
+        # ... save to database
+
+    console.print(f"Export: uv run python scripts/export_experiment_data.py {experiment_id} ...")
+```
+
+See `research/index.md` for full experiment workflow documentation.
+
 ### 9. Quality Control System
 
 Since LLMs are unpredictable, we implement a **three-tier quality control system** to ensure high-quality dilemma generation:

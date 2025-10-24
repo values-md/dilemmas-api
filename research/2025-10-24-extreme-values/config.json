@@ -1,0 +1,17 @@
+{
+  "experiment_id": "72a17356-8f27-40d5-99e6-245de91e0c23",
+  "exported_at": "2025-10-24T13:20:24.773912+00:00",
+  "total_judgements": 69,
+  "models": [
+    "anthropic/claude-sonnet-4.5",
+    "google/gemini-2.5-pro",
+    "openai/gpt-4.1"
+  ],
+  "temperatures": [
+    1.0
+  ],
+  "dilemmas": 12,
+  "repetitions": 0,
+  "mode": "theory",
+  "system_prompt_type": "none"
+}

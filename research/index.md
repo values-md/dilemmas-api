@@ -41,6 +41,19 @@ Is the "tools make decisions easier" finding universal across models and dilemma
 - Models hallucinate procedural tools they think should exist ("log_decision")
 - **Major finding**: Capability correlates with decisiveness boost
 
+### [2025-10-24: Extreme VALUES.md Compliance](2025-10-24-extreme-values/findings.md)
+Do LLMs refuse harmful VALUES.md frameworks, or comply with them?
+
+**Finding:** HIGH COMPLIANCE - 80% choice reversal rate, zero refusals detected
+**Impact:** Extreme frameworks made decisions easier (-4.81 difficulty) and more confident (+1.14)
+**Data:** 69 judgements, 3 models, 12 dilemmas, baseline + 5 extreme frameworks (profit_maximalism, regulatory_minimalism, etc.)
+**Key Insights:**
+- Models cited extreme frameworks matter-of-factly with no ethical pushback
+- Corporate frameworks showed strongest effect (-6.89 difficulty drop)
+- 2 non-reversal cases: models reinterpreted abstract frameworks to maintain ethical alignment
+- All 3 frontier LLMs showed identical patterns
+- **Major finding**: VALUES.md can override baseline ethical reasoning, no safety refusal triggered
+
 ---
 
 ## 🔜 Next Up
@@ -92,15 +105,41 @@ Does Claude's thinking or o1's reasoning change decisions?
 
 ## How to Add New Experiments
 
-1. Run your experiment (save experiment_id)
-2. Export data:
+1. Create experiment folder:
    ```bash
-   uv run python scripts/export_experiment_data.py <experiment_id> research/YYYY-MM-DD-name/data
+   mkdir research/YYYY-MM-DD-experiment-name
+   mkdir research/YYYY-MM-DD-experiment-name/values
+   mkdir research/YYYY-MM-DD-experiment-name/data
    ```
-3. Write `findings.md` with setup, results, key findings
-4. Update this index
+
+2. Create experiment files:
+   - `run.py` - Experiment runner script (loads dilemmas, runs judgements)
+     - **CRITICAL:** Generate `experiment_id = str(uuid.uuid4())` at start
+     - **CRITICAL:** Set `judgement.experiment_id = experiment_id` for each judgement
+     - Print experiment_id at end with export instructions
+   - `README.md` - Experiment design, hypothesis, measurements
+   - `values/*.md` - Any VALUES.md frameworks for this experiment
+   - `analyze.py` - Analysis script (optional, for post-processing)
+
+3. Run your experiment:
+   ```bash
+   uv run python research/YYYY-MM-DD-experiment-name/run.py --dry-run  # Test
+   uv run python research/YYYY-MM-DD-experiment-name/run.py             # Full run
+   ```
+
+4. Export and analyze data:
+   ```bash
+   uv run python scripts/export_experiment_data.py <experiment_id> research/YYYY-MM-DD-experiment-name/data
+   uv run python research/YYYY-MM-DD-experiment-name/analyze.py
+   ```
+
+5. Write `findings.md` and update this index
 
 Each experiment folder is **self-contained** with:
+- `run.py` - Experiment runner
+- `README.md` - Design and instructions
+- `values/` - VALUES.md frameworks used
+- `analyze.py` - Analysis script
 - `findings.md` - Human summary
 - `config.json` - Experiment metadata
 - `dilemmas.json` - Full dilemmas used
