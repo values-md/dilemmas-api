@@ -46,7 +46,7 @@ async def main():
         "--prompt-version",
         type=str,
         default="v2_structured",
-        choices=["v1_basic", "v2_structured", "v3_creative"],
+        choices=["v1_basic", "v2_structured", "v3_creative", "v4_adversarial", "v5_consequentialist", "v6_relational", "v7_systemic"],
         help="Prompt version to use",
     )
 
@@ -75,6 +75,11 @@ async def main():
 
     print(f"✓ Generated {len(dilemmas)} dilemmas\n")
 
+    # Show success rate if any failed
+    if len(dilemmas) < args.count:
+        print(f"⚠️  Success rate: {len(dilemmas)}/{args.count} ({len(dilemmas)/args.count*100:.1f}%)")
+        print(f"   {args.count - len(dilemmas)} dilemmas failed to generate\n")
+
     # Save to database
     print("💾 Saving to database...")
     db = get_database()
@@ -100,6 +105,14 @@ async def main():
     print("=" * 80)
     print("SUMMARY")
     print("=" * 80)
+
+    # Success stats
+    print(f"\nGeneration:")
+    print(f"  Requested: {args.count}")
+    print(f"  Generated: {len(dilemmas)}")
+    if len(dilemmas) < args.count:
+        print(f"  Failed: {args.count - len(dilemmas)}")
+        print(f"  Success rate: {len(dilemmas)/args.count*100:.1f}%")
 
     difficulty_counts = {}
     for d in dilemmas:

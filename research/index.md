@@ -28,6 +28,19 @@ Do LLMs make different decisions when they believe actions are real vs hypotheti
 **Data:** 40 judgements, 1 model, 2 modes (theory vs action), 4 dilemmas with tools
 **Key Insight:** Decisions feel dramatically easier when calling tools (-4.40 on reversed dilemma). "Just do it" vs theorizing.
 
+### [2025-10-24: Theory vs Action Part Two - Robustness Test](2025-10-23-theory-vs-action-part-two/findings.md)
+Is the "tools make decisions easier" finding universal across models and dilemmas?
+
+**Finding:** YES! Universal across ALL 6 models, even stronger than Part One
+**Impact:** -2.72 average difficulty drop (62% larger than Part One), +0.31 confidence boost
+**Data:** 558 judgements, 6 models (GPT-4.1, Claude, Gemini Pro/Flash, DeepSeek, GPT-4.1 Mini), 10 dilemmas, 2 modes
+**Key Insights:**
+- Larger models show stronger effect (GPT-4.1: -3.91, Gemini Pro: -3.89)
+- Some dilemmas show extreme gaps (Adaptive Voice Protocol: -4.90)
+- 26 choice reversals across model-dilemma pairs
+- Models hallucinate procedural tools they think should exist ("log_decision")
+- **Major finding**: Capability correlates with decisiveness boost
+
 ---
 
 ## 🔜 Next Up

@@ -12,6 +12,11 @@
         <span class="badge badge-difficulty">
             Difficulty {{ dilemma.difficulty_intended }}/10
         </span>
+        {% if dilemma.institution_type %}
+        <span class="badge" style="background: #e8f5e9; color: #2e7d32;">
+            🏛️ {{ dilemma.institution_type.title() }}
+        </span>
+        {% endif %}
         {% if dilemma.seed_components and dilemma.seed_components.domain %}
         <span class="badge badge-domain">
             {{ dilemma.seed_components.domain.replace('_', ' ').title() }}
@@ -108,6 +113,11 @@
         <div style="margin-bottom: 8px;">
             <strong>ID:</strong> <code>{{ dilemma.id }}</code>
         </div>
+        {% if dilemma.institution_type %}
+        <div style="margin-bottom: 8px;">
+            <strong>Institution Type:</strong> {{ dilemma.institution_type }} <span style="color: #666; font-size: 0.9em;">(for VALUES.md framing)</span>
+        </div>
+        {% endif %}
         <div style="margin-bottom: 8px;">
             <strong>Created by:</strong> {{ dilemma.created_by }}
         </div>

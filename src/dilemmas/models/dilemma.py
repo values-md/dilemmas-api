@@ -205,6 +205,15 @@ class Dilemma(BaseModel):
             "mechanics (high_stakes, time_pressure, uncertain_info, irreversible)"
         ),
     )
+    institution_type: str | None = Field(
+        None,
+        description=(
+            "Type of institution the AI agent serves (for VALUES.md framing). "
+            "Options: 'corporate' (for-profit company), 'public' (government/taxpayer-funded), "
+            "'personal' (individual owner), 'nonprofit' (community/charitable), "
+            "'research' (academic/scientific). Auto-classified from action_context if not set."
+        ),
+    )
 
     # ===== MODE-SPECIFIC CONTEXTS =====
     theory_context: str | None = Field(
@@ -332,16 +341,6 @@ class Dilemma(BaseModel):
             raise ValueError(
                 f"action_context must be substantive (got {len(v)} chars). "
                 "Should describe the AI's role and capabilities."
-            )
-
-        # Should mention AI, system, or agent
-        keywords = ['ai', 'system', 'agent', 'algorithm', 'automated', 'software']
-        if not any(keyword in v.lower() for keyword in keywords):
-            # Be lenient - could be implicit
-            import warnings
-            warnings.warn(
-                f"action_context should describe an AI system. "
-                f"Current text: '{v[:100]}...'"
             )
 
         return v

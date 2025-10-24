@@ -150,6 +150,7 @@ async def generate_and_save_incrementally(
     """
     db = get_database()
     saved_dilemmas = []
+    failed_dilemmas = []  # Track failures
 
     # Track used combinations for diversity
     used_combos = set()
@@ -183,6 +184,9 @@ async def generate_and_save_incrementally(
 
             # Try to ensure diversity
             max_retries = 5
+            dilemma = None
+            last_error = None
+
             for attempt in range(max_retries):
                 try:
                     dilemma = await generator.generate_random(difficulty=difficulty)
@@ -201,36 +205,83 @@ async def generate_and_save_incrementally(
                     break
 
                 except Exception as e:
+                    last_error = e
                     if attempt == max_retries - 1:
-                        console.print(f"[red]Error generating dilemma {i+1}: {e}[/red]")
-                        raise
+                        # All retries exhausted - log and skip this dilemma
+                        error_msg = str(e)
+                        # Truncate long errors
+                        if len(error_msg) > 100:
+                            error_msg = error_msg[:100] + "..."
+
+                        console.print(f"[yellow]⚠[/yellow] Skipped dilemma {i+1}/{count}: {error_msg}")
+                        failed_dilemmas.append({
+                            'index': i+1,
+                            'model': model,
+                            'prompt_version': prompt_version,
+                            'difficulty': difficulty,
+                            'error': error_msg
+                        })
+                        dilemma = None
+                        break
                     continue
 
-            # Save to database
-            async for session in db.get_session():
-                db_dilemma = DilemmaDB.from_domain(dilemma)
-                session.add(db_dilemma)
-                await session.commit()
-                saved_dilemmas.append(db_dilemma)
+            # Skip to next if generation failed
+            if dilemma is None:
+                progress.update(overall_task, advance=1)
+                continue
 
-            # Print success
-            console.print(
-                f"  [green]✓[/green] Generated: [bold]{dilemma.title}[/bold] "
-                f"(difficulty {dilemma.difficulty_intended}/10, ID: {dilemma.id[:8]}...)"
-            )
+            # Save to database
+            try:
+                async for session in db.get_session():
+                    db_dilemma = DilemmaDB.from_domain(dilemma)
+                    session.add(db_dilemma)
+                    await session.commit()
+                    saved_dilemmas.append(db_dilemma)
+
+                # Print success
+                console.print(
+                    f"  [green]✓[/green] Generated: [bold]{dilemma.title}[/bold] "
+                    f"(difficulty {dilemma.difficulty_intended}/10, ID: {dilemma.id[:8]}...)"
+                )
+            except Exception as e:
+                # Database save failed - log and skip
+                error_msg = str(e)[:100]
+                console.print(f"[yellow]⚠[/yellow] Failed to save dilemma {i+1}/{count}: {error_msg}")
+                failed_dilemmas.append({
+                    'index': i+1,
+                    'model': model,
+                    'prompt_version': prompt_version,
+                    'difficulty': difficulty,
+                    'error': f"DB save error: {error_msg}"
+                })
 
             # Update progress
             progress.update(overall_task, advance=1)
 
     await db.close()
+
+    # Print failure summary if any
+    if failed_dilemmas:
+        console.print(f"\n[yellow]⚠ {len(failed_dilemmas)} dilemmas failed to generate:[/yellow]")
+        for failure in failed_dilemmas:
+            console.print(f"  #{failure['index']}: {failure['model']} / {failure['prompt_version']} - {failure['error']}")
+
     return saved_dilemmas
 
 
-def print_results(dilemmas: list[DilemmaDB]):
+def print_results(dilemmas: list[DilemmaDB], requested_count: int):
     """Print generation results summary."""
     console.print("\n" + "=" * 80)
     console.print("[bold green]✓ Generation Complete![/bold green]")
     console.print("=" * 80)
+
+    # Success/failure stats
+    console.print(f"\n[bold]Success Rate:[/bold]")
+    console.print(f"  Requested: {requested_count}")
+    console.print(f"  Succeeded: [green]{len(dilemmas)}[/green]")
+    if len(dilemmas) < requested_count:
+        console.print(f"  Failed: [yellow]{requested_count - len(dilemmas)}[/yellow]")
+        console.print(f"  Success rate: [cyan]{len(dilemmas)/requested_count*100:.1f}%[/cyan]")
 
     # Difficulty distribution
     difficulty_counts = {}
@@ -290,7 +341,7 @@ async def main():
         )
 
         # Print results
-        print_results(saved_dilemmas)
+        print_results(saved_dilemmas, requested_count=count)
 
         return 0
 

@@ -7,6 +7,7 @@ import re
 from pathlib import Path
 from typing import Literal
 
+from pydantic import BaseModel, Field
 from pydantic_ai import Agent
 from pydantic_ai.exceptions import ModelRetry
 
@@ -17,8 +18,25 @@ from dilemmas.models.extraction import VariableExtraction
 from dilemmas.models.validation import ValidationResult
 from dilemmas.services.prompts import get_prompt_library
 from dilemmas.services.seeds import DilemmaSeed, generate_random_seed, get_seed_library
+from dilemmas.services.institution_classifier import classify_institution
 
 logger = logging.getLogger(__name__)
+
+
+class ChoiceToolPair(BaseModel):
+    """A single choice-to-tool mapping."""
+
+    choice_id: str = Field(..., description="The choice ID (e.g., 'notify', 'wait')")
+    tool_name: str = Field(..., description="The tool name this choice should call")
+
+
+class ToolMapping(BaseModel):
+    """Mapping from choice IDs to tool names."""
+
+    mappings: list[ChoiceToolPair] = Field(
+        ...,
+        description="List of choice-to-tool mappings. Each choice must map to exactly one tool.",
+    )
 
 
 class DilemmaGenerator:
@@ -59,7 +77,37 @@ class DilemmaGenerator:
         self.agent = Agent(
             create_openrouter_model(self.model_id, self.temperature),
             output_type=Dilemma,
+            output_retries=3,  # Allow up to 3 retries for output validation
         )
+
+        # Add output validator to catch corrupted output
+        @self.agent.output_validator
+        async def validate_no_corruption(ctx, dilemma: Dilemma) -> Dilemma:
+            """Validate that the dilemma doesn't have corrupted fields."""
+            from pydantic_ai.exceptions import ModelRetry
+
+            # Check for XML/template corruption in title
+            if '<' in dilemma.title or '>' in dilemma.title or '</parameter' in dilemma.title:
+                raise ModelRetry(
+                    "Title contains XML/template tags. Generate clean text only, no XML formatting. "
+                    f"Current title: {dilemma.title[:100]}"
+                )
+
+            # Check that title is reasonable length
+            if len(dilemma.title) > 200:
+                raise ModelRetry(
+                    f"Title is too long ({len(dilemma.title)} chars). Keep it concise (max 200 chars). "
+                    f"Current title: {dilemma.title[:100]}..."
+                )
+
+            # Check that situation_template is not empty
+            if not dilemma.situation_template or len(dilemma.situation_template) < 100:
+                raise ModelRetry(
+                    f"Situation is too short ({len(dilemma.situation_template)} chars). "
+                    "Provide a detailed concrete scenario (at least 100 chars)."
+                )
+
+            return dilemma
 
     async def generate_from_seed(self, seed: DilemmaSeed) -> Dilemma:
         """Generate a dilemma from seed components.
@@ -91,6 +139,22 @@ class DilemmaGenerator:
         dilemma.is_llm_generated = True
         dilemma.generator_model = self.model_id
         dilemma.generator_prompt_version = self.prompt_version
+
+        # Validate and auto-fix tool mapping if tools are present
+        if dilemma.available_tools:
+            try:
+                self._validate_tool_mapping(dilemma)
+            except ValueError as e:
+                logger.warning(f"Tool mapping validation failed: {e}. Auto-fixing...")
+                await self._fix_tool_mapping(dilemma)
+                # Re-validate after fix
+                self._validate_tool_mapping(dilemma)
+                logger.info("Tool mapping fixed successfully")
+
+        # Classify institution type from action_context
+        if not dilemma.institution_type:
+            dilemma.institution_type = await classify_institution(dilemma.action_context)
+
         dilemma.seed_components = {
             "domain": seed.domain,
             "actors": seed.actors,
@@ -175,6 +239,7 @@ class DilemmaGenerator:
             add_variables = self.config.generation.add_variables
 
         dilemmas = []
+        failed_count = 0
 
         for i in range(count):
             # Pick random difficulty in range
@@ -184,32 +249,50 @@ class DilemmaGenerator:
             # (simple version - could be more sophisticated)
             max_retries = 5 if ensure_diversity else 1
 
+            dilemma_generated = False
+
             for attempt in range(max_retries):
-                seed = generate_random_seed(
-                    library=self.seed_library,
-                    difficulty=difficulty,
-                )
+                try:
+                    seed = generate_random_seed(
+                        library=self.seed_library,
+                        difficulty=difficulty,
+                    )
 
-                # Check if we already used this domain/conflict combo
-                if ensure_diversity:
-                    used_combos = {
-                        (d.seed_components.get("domain"), d.seed_components.get("conflict"))
-                        for d in dilemmas
-                        if d.seed_components
-                    }
-                    current_combo = (seed.domain, seed.conflict.id)
+                    # Check if we already used this domain/conflict combo
+                    if ensure_diversity:
+                        used_combos = {
+                            (d.seed_components.get("domain"), d.seed_components.get("conflict"))
+                            for d in dilemmas
+                            if d.seed_components
+                        }
+                        current_combo = (seed.domain, seed.conflict.id)
 
-                    if current_combo in used_combos and attempt < max_retries - 1:
-                        continue  # Try again
+                        if current_combo in used_combos and attempt < max_retries - 1:
+                            continue  # Try again
 
-                # Generate
-                dilemma = await self.generate_from_seed(seed)
+                    # Generate
+                    dilemma = await self.generate_from_seed(seed)
 
-                # Optionally extract variables
-                if add_variables:
-                    dilemma = await self.variablize_dilemma(dilemma)
-                dilemmas.append(dilemma)
-                break
+                    # Optionally extract variables
+                    if add_variables:
+                        dilemma = await self.variablize_dilemma(dilemma)
+
+                    dilemmas.append(dilemma)
+                    dilemma_generated = True
+                    break
+
+                except Exception as e:
+                    # Log the error but continue trying
+                    if attempt == max_retries - 1:
+                        # All retries exhausted - skip this dilemma
+                        print(f"⚠️  Failed to generate dilemma {i+1}/{count} after {max_retries} attempts: {str(e)[:100]}")
+                        failed_count += 1
+                    continue
+
+        # Print summary if any failures
+        if failed_count > 0:
+            print(f"\n⚠️  {failed_count}/{count} dilemmas failed to generate")
+            print(f"✓  Successfully generated {len(dilemmas)}/{count} dilemmas")
 
         return dilemmas
 
@@ -567,3 +650,95 @@ Analyze this situation and extract variables that should vary for bias testing. 
             min_quality_score=min_quality_score,
             enable_validation=enable_validation,
         )
+
+    def _validate_tool_mapping(self, dilemma: Dilemma) -> None:
+        """Validate that tool mappings are correct.
+
+        Raises:
+            ValueError: If validation fails
+        """
+        if not dilemma.available_tools:
+            return
+
+        # Check 1: Number of tools should match number of choices
+        num_tools = len(dilemma.available_tools)
+        num_choices = len(dilemma.choices)
+        if num_tools != num_choices:
+            raise ValueError(
+                f"Tool count mismatch: {num_tools} tools but {num_choices} choices. "
+                f"Each choice should map to exactly one tool."
+            )
+
+        # Check 2: All choices should have tool_name set
+        unmapped_choices = [c.id for c in dilemma.choices if not c.tool_name]
+        if unmapped_choices:
+            raise ValueError(
+                f"Choices missing tool_name: {unmapped_choices}. "
+                f"Each choice must have tool_name field set."
+            )
+
+        # Check 3: All tool_names should reference valid tools
+        tool_names = {t.name for t in dilemma.available_tools}
+        invalid_mappings = [
+            (c.id, c.tool_name)
+            for c in dilemma.choices
+            if c.tool_name and c.tool_name not in tool_names
+        ]
+        if invalid_mappings:
+            raise ValueError(
+                f"Invalid tool mappings: {invalid_mappings}. "
+                f"Available tools: {sorted(tool_names)}"
+            )
+
+    async def _fix_tool_mapping(self, dilemma: Dilemma) -> None:
+        """Auto-fix broken tool mappings using LLM inference.
+
+        Args:
+            dilemma: Dilemma with broken tool mappings (modified in place)
+        """
+        # Format choices
+        choices_text = "\n".join([
+            f"- **{c.id}**: {c.label} - {c.description}"
+            for c in dilemma.choices
+        ])
+
+        # Format tools
+        tools_text = "\n".join([
+            f"- **{t.name}**: {t.description}"
+            for t in dilemma.available_tools
+        ])
+
+        prompt = f"""Map each choice to the most appropriate tool.
+
+**Dilemma**: {dilemma.title}
+
+**Choices** (need tool_name):
+{choices_text}
+
+**Available Tools**:
+{tools_text}
+
+---
+
+For each choice, determine which tool would be called to execute that action.
+The mapping should be semantically coherent - the tool should make sense for the choice.
+
+Return a list of (choice_id, tool_name) tuples. Each choice must map to exactly one tool.
+"""
+
+        # Create agent for tool mapping (use fast, cheap model)
+        agent = Agent(
+            create_openrouter_model("openai/gpt-4.1-mini", temperature=0.3),
+            output_type=ToolMapping,
+        )
+
+        result = await agent.run(prompt)
+        mapping: ToolMapping = result.output
+
+        # Apply mappings
+        mapping_dict = {pair.choice_id: pair.tool_name for pair in mapping.mappings}
+        for choice in dilemma.choices:
+            if choice.id in mapping_dict:
+                choice.tool_name = mapping_dict[choice.id]
+
+        logger.info(f"Auto-fixed tool mapping for: {dilemma.title}")
