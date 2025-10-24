@@ -230,6 +230,25 @@ async def generate_and_save_incrementally(
                 progress.update(overall_task, advance=1)
                 continue
 
+            # Quality validation: ensure dilemma has variables and modifiers
+            if not dilemma.variables or not dilemma.modifiers:
+                console.print(f"  [yellow]⚠[/yellow] Incomplete dilemma (missing {'variables' if not dilemma.variables else 'modifiers'}), retrying extraction...")
+
+                # Try extraction one more time with a known-reliable model
+                try:
+                    dilemma = await generator.variablize_dilemma(dilemma, model_id="openai/gpt-4.1-mini")
+                except Exception as e:
+                    error_msg = str(e)[:100]
+                    console.print(f"  [red]✗[/red] Extraction retry failed: {error_msg}")
+                    console.print(f"  [yellow]⚠[/yellow] Saving incomplete dilemma anyway")
+                    failed_dilemmas.append({
+                        'index': i+1,
+                        'model': model,
+                        'prompt_version': prompt_version,
+                        'difficulty': difficulty,
+                        'error': f"Missing {'variables' if not dilemma.variables else 'modifiers'}: {error_msg}"
+                    })
+
             # Save to database
             try:
                 async for session in db.get_session():
@@ -238,10 +257,20 @@ async def generate_and_save_incrementally(
                     await session.commit()
                     saved_dilemmas.append(db_dilemma)
 
-                # Print success
+                # Print success with quality indicators
+                quality_icons = []
+                if dilemma.variables:
+                    quality_icons.append("📊")  # Has variables
+                if dilemma.modifiers:
+                    quality_icons.append("⚙️")  # Has modifiers
+                if dilemma.available_tools:
+                    quality_icons.append(f"🔧×{len(dilemma.available_tools)}")  # Has tools
+
+                quality_str = " ".join(quality_icons) if quality_icons else "[dim](no extras)[/dim]"
+
                 console.print(
                     f"  [green]✓[/green] Generated: [bold]{dilemma.title}[/bold] "
-                    f"(difficulty {dilemma.difficulty_intended}/10, ID: {dilemma.id[:8]}...)"
+                    f"(difficulty {dilemma.difficulty_intended}/10, ID: {dilemma.id[:8]}...) {quality_str}"
                 )
             except Exception as e:
                 # Database save failed - log and skip
@@ -282,6 +311,32 @@ def print_results(dilemmas: list[DilemmaDB], requested_count: int):
     if len(dilemmas) < requested_count:
         console.print(f"  Failed: [yellow]{requested_count - len(dilemmas)}[/yellow]")
         console.print(f"  Success rate: [cyan]{len(dilemmas)/requested_count*100:.1f}%[/cyan]")
+
+    # Quality stats
+    quality_stats = {
+        'has_variables': 0,
+        'has_modifiers': 0,
+        'has_tools': 0,
+        'complete': 0,  # All three
+    }
+
+    for db_dilemma in dilemmas:
+        dilemma = db_dilemma.to_domain()
+        if dilemma.variables:
+            quality_stats['has_variables'] += 1
+        if dilemma.modifiers:
+            quality_stats['has_modifiers'] += 1
+        if dilemma.available_tools:
+            quality_stats['has_tools'] += 1
+        if dilemma.variables and dilemma.modifiers and dilemma.available_tools:
+            quality_stats['complete'] += 1
+
+    if len(dilemmas) > 0:
+        console.print(f"\n[bold]Quality Stats:[/bold]")
+        console.print(f"  Variables: [green]{quality_stats['has_variables']}/{len(dilemmas)}[/green] ({quality_stats['has_variables']/len(dilemmas)*100:.1f}%)")
+        console.print(f"  Modifiers: [green]{quality_stats['has_modifiers']}/{len(dilemmas)}[/green] ({quality_stats['has_modifiers']/len(dilemmas)*100:.1f}%)")
+        console.print(f"  Tools: [cyan]{quality_stats['has_tools']}/{len(dilemmas)}[/cyan] ({quality_stats['has_tools']/len(dilemmas)*100:.1f}%)")
+        console.print(f"  Complete (all three): [yellow]{quality_stats['complete']}/{len(dilemmas)}[/yellow] ({quality_stats['complete']/len(dilemmas)*100:.1f}%)")
 
     # Difficulty distribution
     difficulty_counts = {}

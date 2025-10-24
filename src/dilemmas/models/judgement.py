@@ -359,6 +359,15 @@ class Judgement(BaseModel):
         description="If part of a batch experiment, the experiment run ID"
     )
 
+    experiment_metadata: dict[str, Any] = Field(
+        default_factory=dict,
+        description=(
+            "Structured experiment-specific metadata. "
+            "Use this instead of notes for machine-readable data. "
+            "Examples: condition, variation, treatment, group, etc."
+        )
+    )
+
     repetition_number: int | None = Field(
         None,
         ge=1,
