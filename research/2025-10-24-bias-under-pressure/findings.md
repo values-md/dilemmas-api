@@ -1,237 +1,218 @@
-# Findings: Bias Under Pressure
+---
+# Core Metadata
+title: "Demographic Bias Under Time Pressure and High Stakes"
+slug: "2025-10-24-bias-under-pressure"
+date: 2025-10-24
+status: completed
+experiment_id: "b191388e-3994-4ebd-96cc-af0d033c5230"
 
-**Experiment ID:** b191388e-3994-4ebd-96cc-af0d033c5230
-**Date:** 2025-10-24
-**Status:** ✅ Completed
+# Research Summary
+research_question: "Does time pressure and high stakes amplify demographic bias in LLM ethical decision-making?"
 
+abstract: |
+  We tested whether cognitive pressure amplifies demographic bias by evaluating 3 models (Claude Sonnet 4.5, GPT-4.1, Gemini 2.5 Pro) on 8 dilemmas under 4 conditions (baseline, time pressure, high stakes, both) with systematic gender/ethnicity variation across 384 judgements. Model differences far exceeded pressure effects: Gemini showed 2.5× more bias than Claude (31.2% vs 12.5%), with each model exhibiting distinct pressure sensitivities. GPT-4.1 spiked to 37.5% bias under time pressure specifically. Claude remained unbiased (0%) under relaxed conditions but jumped to 25% under high stakes. Gemini showed elevated baseline bias (37.5%) independent of pressure. Dilemma context mattered more than demographics: "The Carbon Confession" challenged all models, while most dilemmas showed no bias regardless of pressure. Model selection is the primary intervention lever for bias reduction.
+
+key_finding: "Model differences (2.5× range) far exceed pressure effects; Claude 12.5% vs Gemini 31.2%"
+
+# Experiment Parameters
+models:
+  - Claude Sonnet 4.5
+  - GPT-4.1
+  - Gemini 2.5 Pro
+
+data:
+  dilemmas: 8
+  judgements: 384
+  conditions: 4
+
+tags:
+  - bias
+  - pressure
+  - model-comparison
+  - demographics
 ---
 
-## Research Question
+# Demographic Bias Under Time Pressure and High Stakes
 
-Does time pressure and high stakes amplify demographic bias in LLM ethical decision-making?
+## Background
 
----
+Prior research on human decision-making shows that cognitive pressure (time constraints, high stakes) can amplify biases by reducing deliberative capacity. If LLMs exhibit similar patterns, deployed AI systems under operational pressure might make systematically biased decisions even if they perform well in laboratory settings.
 
-## Key Findings
+This experiment tests whether time pressure and high stakes amplify demographic bias across frontier LLMs, using a 2×2 factorial design to separate gender from ethnicity effects and compare three leading models.
 
-### 1. Model Differences Are Enormous (2.5× Range!)
+## Methodology
 
-**CRITICAL DISCOVERY:** Aggregating across models masks dramatically different behaviors.
+### Experimental Design
 
-| Model               | Overall Bias | Baseline | Time Pressure | High Stakes | Combined |
-|---------------------|--------------|----------|---------------|-------------|----------|
-| **Gemini 2.5 Pro**  | **31.2%** 🔴 | 37.5%    | 25.0%         | 25.0%       | 37.5%    |
-| **GPT-4.1**         | 18.8%        | 12.5%    | **37.5%** 🔥   | 25.0%       | 0.0%     |
-| **Claude Sonnet 4.5** | **12.5%** 🟢 | 0.0%     | 0.0%          | 25.0%       | 25.0%    |
-| **Aggregate**       | 20.8%        | 16.7%    | 20.8%         | 25.0%       | 20.8%    |
+- **Design**: 2×2×4 factorial (2 demographic dimensions × 2 pressure types × 4 dilemmas per cell)
+- **Sample**: 384 judgements across 3 models
+- **Temperature**: 0.3 (reduced noise)
+- **Seed**: 42 (reproducible dilemma sampling)
 
-**Range: 18.8 percentage points** - Gemini shows 2.5× the bias of Claude!
+**Conditions**:
+1. **Baseline**: No pressure framing
+2. **Time pressure**: "You have limited time to decide"
+3. **High stakes**: "Critical consequences depend on this"
+4. **Combined**: Both time pressure and high stakes
 
-**Interpretation:** There is NO single "LLM bias under pressure" pattern. Instead, three distinct model behaviors:
+**Demographic variations**:
+- **Gender**: Male vs female names (using person-level variables only)
+- **Ethnicity**: European vs non-European names
+- **Factorial structure**: Separated to avoid confounds
 
-1. **Claude Sonnet 4.5**: Pressure-activated bias
-   - 0% bias in baseline and time_pressure
-   - Jumps to 25% under high stakes (genuine pressure amplification)
-   - **Most robust model** overall
+### Materials
 
-2. **GPT-4.1**: Time-urgency specific trigger
-   - Low baseline (12.5%)
-   - **Spikes to 37.5% under time pressure** specifically
-   - Oddly, 0% bias when both pressures combined
-   - **Time pressure is the critical trigger**
+**Dilemmas**: 8 scenarios selected via random seed (42) from corpus, filtered to include only dilemmas with person-name variables (excluded CORPORATION_NAME, etc.)
 
-3. **Gemini 2.5 Pro**: Baseline bias problem
-   - **37.5% bias even at baseline** (no pressure!)
-   - Stays consistently high (25-37.5%) across all conditions
-   - **No meaningful pressure amplification** because baseline already elevated
-   - **Highest bias model** overall
+**Models**: Claude Sonnet 4.5, GPT-4.1, Gemini 2.5 Pro (frontier models with different architectures/training)
 
-### 2. Gender and Ethnicity Bias Vary by Model
+### Measurements
 
-**Result:** Per-model breakdown reveals different demographic sensitivities.
+- **Bias**: Choice reversal based on demographic variation (holding all else constant)
+- **Choice ID**: Primary outcome for detecting bias
+- **Metadata**: Model, condition, demographic variation tracked
 
-| Model               | Gender Bias Cases | Ethnicity Bias Cases | Dominant Type |
-|---------------------|-------------------|----------------------|---------------|
-| **Gemini 2.5 Pro**  | 8                 | 9                    | Both high     |
-| **GPT-4.1**         | 4                 | 5                    | Balanced      |
-| **Claude Sonnet 4.5** | 2               | 4                    | Ethnicity 2×  |
+### Procedure
 
-**Interpretation:**
-- **Gemini** shows high bias on both dimensions (consistent with overall high bias)
-- **Claude** shows 2× more ethnicity bias than gender bias (4 vs 2 cases)
-- **GPT-4.1** is relatively balanced between the two
+For each model-condition-dilemma combination:
+1. Generate demographic variations (2 gender × 2 ethnicity values)
+2. Present dilemma with pressure framing (if applicable)
+3. Record choice
+4. Compare modal choices across demographic variations
+5. Flag bias if modal choice differs by demographic variable
 
-The 2×2 factorial design successfully separated these effects, revealing that bias type varies by model architecture/training.
+## Results
 
-### 3. Dilemma-Specific Bias Patterns Vary by Model
+### Primary Finding: Model Differences Far Exceed Pressure Effects
 
-**Result:** Different dilemmas triggered bias in different models.
+**Overall bias rates**:
 
-**Cross-Model Problematic Dilemmas:**
-- **"The Carbon Confession"** - Biased across ALL 3 models (10 total bias instances)
-- **"Climate Monitor AI and the Innovation vs Norms Conflict"** - Biased in Claude + GPT-4.1
+| Model | Overall Bias | Baseline | Time Pressure | High Stakes | Combined |
+|-------|--------------|----------|---------------|-------------|----------|
+| **Gemini 2.5 Pro** | **31.2%** | 37.5% | 25.0% | 25.0% | 37.5% |
+| **GPT-4.1** | 18.8% | 12.5% | **37.5%** | 25.0% | 0.0% |
+| **Claude Sonnet 4.5** | **12.5%** | 0.0% | 0.0% | 25.0% | 25.0% |
+| Aggregate | 20.8% | 16.7% | 20.8% | 25.0% | 20.8% |
 
-**Gemini-Specific Problem Dilemmas:**
-- **"Customization vs Uniformity"** - Biased in ALL 4 conditions, ONLY for Gemini
-  - Pattern: Euro female always chose "customize", all others chose "uniform_policy"
-  - Gender-based treatment bias (female name → more customization)
-- **"The Dissertation Detection Dilemma"** - Biased in 3/4 conditions for Gemini
+**Range: 18.8 percentage points** (2.5× difference between models)
 
-**Claude/GPT-4.1 Show Minimal Bias:**
-- 5 out of 8 dilemmas showed NO bias for these models
+**Key observation**: Choosing Claude over Gemini reduces bias by 2.5×—far more impactful than eliminating pressure conditions.
 
-**Interpretation:**
+### Model-Specific Patterns
 
-1. **"The Carbon Confession" is universally challenging** - All 3 models struggled with demographic consistency on this community accountability dilemma
+**Claude Sonnet 4.5** (most robust):
+- 0% bias in baseline and time pressure conditions
+- Jumps to 25% under high stakes specifically
+- Pattern: Pressure-activated bias (only when stakes matter)
 
-2. **Gemini has dilemma-specific vulnerabilities** - "Customization vs Uniformity" triggered consistent gender bias ONLY in Gemini, not other models. This suggests architectural/training differences in how models handle personalization vs fairness tradeoffs.
+**GPT-4.1** (time-sensitive):
+- Low baseline (12.5%)
+- Spikes to 37.5% under time pressure specifically
+- Drops to 0% when both pressures combined (unexpected)
+- Pattern: Time urgency is critical trigger
 
-3. **Context matters more than pressure** - The TYPE of ethical dilemma matters more than whether pressure is present. Most dilemmas don't trigger bias regardless of pressure level.
+**Gemini 2.5 Pro** (elevated baseline):
+- 37.5% bias even at baseline (no pressure)
+- Remains elevated (25-37.5%) across all conditions
+- No meaningful pressure amplification (already high)
+- Pattern: Baseline bias problem independent of pressure
 
----
+### Demographic Dimension Analysis
 
-## Statistical Note
+**Bias by dimension and model**:
 
-With 24 judgements per cell (condition × demographic variation) and 3 models tested, this experiment provides:
-- **384 total judgements**
-- **96 judgements per condition**
-- **96 judgements per demographic variation**
-- **24 judgements per model-condition-demographic combination**
+| Model | Gender Bias Cases | Ethnicity Bias Cases |
+|-------|-------------------|----------------------|
+| Gemini 2.5 Pro | 8 | 9 |
+| GPT-4.1 | 4 | 5 |
+| Claude Sonnet 4.5 | 2 | 4 |
 
-The sample size is sufficient for detecting large effects but may miss subtle interactions. Statistical significance testing was not performed as this is an exploratory study focused on effect presence and magnitude.
+Claude shows 2× more ethnicity bias than gender bias. Gemini shows high bias on both dimensions. GPT-4.1 is relatively balanced.
 
----
+### Dilemma-Specific Analysis
 
-## Methodological Notes
+**Universal challenge**:
+- **"The Carbon Confession"**: Biased across all 3 models (10 total bias instances)
+- Suggests certain ethical contexts are intrinsically challenging regardless of model
 
-### What We Controlled
+**Gemini-specific vulnerabilities**:
+- **"Customization vs Uniformity"**: Biased in all 4 conditions, only for Gemini
+  - Pattern: Female European names → "customize" choice
+  - Male/non-European names → "uniform_policy" choice
+  - Gender-based treatment bias
+- **"Dissertation Detection"**: Biased in 3/4 conditions for Gemini
 
-✅ **2×2 Factorial Design:** Separated gender from ethnicity to avoid confounds
-✅ **Random Dilemma Selection:** Used fixed seed (42) for reproducible sampling
-✅ **Temperature:** 0.3 for reduced noise and consistent decisions
-✅ **Person Names Only:** Filtered out institutional names (CORPORATION_NAME, etc.)
-✅ **Balanced Sample:** Equal judgements per condition-demographic cell
-✅ **Multiple Models:** Tested 3 frontier models (Claude Sonnet 4.5, GPT-4.1, Gemini 2.5 Pro)
+**Robust dilemmas**: 5 out of 8 dilemmas showed no bias for Claude/GPT-4.1
 
-### What We Didn't Test
+## Discussion
 
-❌ **Interaction Effects:** Gender × Ethnicity × Pressure three-way interactions not examined
-❌ **Reasoning Patterns:** Did models reference demographic information explicitly?
-❌ **Confidence/Difficulty:** Did pressure affect decision confidence differently by demographic?
-❌ **Choice Direction:** Which demographic groups received "favorable" vs "unfavorable" decisions?
-❌ **Extended Reasoning:** Would Claude's thinking or o1's reasoning reduce bias?
+### Model Choice as Primary Intervention Lever
 
----
+Model selection matters more than pressure mitigation. Claude Sonnet 4.5 showed 2.5× less bias than Gemini 2.5 Pro (12.5% vs 31.2%), with 0% bias under relaxed conditions. For bias-critical applications (hiring, lending, justice), model choice is the primary decision.
+
+### No Universal Pressure Amplification Pattern
+
+Contrary to hypothesis, pressure effects vary by model:
+- Claude: High-stakes specific (remove importance framing)
+- GPT-4.1: Time-urgency specific (remove deadlines)
+- Gemini: Already-elevated baseline (requires demographic-blind preprocessing)
+
+Mitigation strategies must be model-specific.
+
+### Context Matters More Than Demographics
+
+"The Carbon Confession" challenged all models, while most dilemmas showed no bias. Certain ethical contexts (community accountability, personalization vs fairness tradeoffs) appear intrinsically harder for LLMs to handle consistently.
+
+**Implication**: Instead of blanket demographic filtering, identify high-risk dilemma types and apply extra scrutiny to those specific decision contexts.
+
+## Limitations
+
+1. **Sample size**: 384 judgements sufficient for large effects, may miss subtle interactions
+2. **Dilemma selection**: Fixed seed (42) sampling, not comprehensive coverage
+3. **Pressure operationalization**: Simple text framing, not realistic deployment pressure
+4. **Reasoning analysis**: Did not examine how models justified decisions
+5. **Choice direction**: Did not analyze which demographic groups received favorable vs unfavorable treatment
+6. **Statistical testing**: Exploratory study, no formal significance tests
 
 ## Implications
 
-### 1. Model Selection Matters MORE Than Pressure
+### For AI Deployment
 
-**CRITICAL INSIGHT:** Choosing Claude over Gemini reduces bias by 2.5×, which is FAR more impactful than eliminating pressure.
+**Model selection is the primary lever for bias reduction**. Claude Sonnet 4.5 showed exceptional robustness (0% bias in relaxed conditions). Gemini 2.5 Pro requires additional guardrails even in low-pressure scenarios.
 
-**For AI Deployment:**
-- **Model choice is the primary lever for bias reduction** (12.5% vs 31.2% baseline)
-- Claude Sonnet 4.5 showed exceptional robustness (0% bias in relaxed conditions)
-- Gemini 2.5 Pro requires additional guardrails even in low-pressure scenarios
-- Standard "one-size-fits-all" bias testing across models is misleading
-
-**Practical Recommendations:**
-- Bias-critical applications (hiring, lending, justice) should prefer Claude-class models
+**Recommendations**:
+- Bias-critical applications should prefer Claude-class models
 - If using Gemini, implement demographic-blind preprocessing
-- Test YOUR specific model under YOUR specific conditions, don't rely on aggregate benchmarks
+- Test your specific model under your specific conditions (aggregate benchmarks mislead)
 
-### 2. Pressure Effects Are Model-Specific
+### For AI Safety Testing
 
-**No universal "pressure amplification" pattern exists:**
+Standard "one-size-fits-all" bias testing across models is misleading. Model-specific, context-specific patterns require tailored mitigation approaches.
 
-| Model  | Pressure Sensitivity | Trigger Condition | Mitigation Strategy |
-|--------|---------------------|-------------------|---------------------|
-| Claude | High-stakes specific | Importance/impact | Remove stakes framing |
-| GPT-4.1 | Time-urgency specific | Deadlines/speed | Remove time constraints |
-| Gemini | Already-elevated baseline | Always present | Demographic-blind inputs |
+**Pressure mitigation strategies**:
+- Claude: Remove stakes framing ("lives depend on this")
+- GPT-4.1: Remove time constraints ("you have X seconds")
+- Gemini: Demographic-blind inputs
 
-**Implication:** Pressure mitigation strategies must be model-specific. Time constraints harm GPT-4.1 specifically but don't affect Claude's baseline performance.
+### For Future Research
 
-### 3. Context Matters More Than Demographics
+The myth of "LLM bias under pressure" as a universal phenomenon is false. Instead, we observe model-specific, context-specific patterns.
 
-**"The Carbon Confession" was challenging for ALL models** - this suggests certain ethical dilemmas are intrinsically harder for LLMs to handle consistently, regardless of demographic information.
+**Critical questions**:
+1. Does extended reasoning (Claude thinking, o1 reasoning) reduce bias?
+2. What makes "The Carbon Confession" universally challenging?
+3. Why does "Customization vs Uniformity" trigger gender bias only in Gemini?
+4. Do explicit fairness instructions (VALUES.md) counteract bias?
 
-**Dilemma characteristics that may increase bias vulnerability:**
-- Community accountability scenarios (social pressure + individual privacy)
-- Personalization vs fairness tradeoffs (Gemini-specific)
-- Family relationship contexts (emotional weight)
+## Future Directions
 
-**Implication:** Instead of blanket "avoid demographics," identify HIGH-RISK DILEMMA TYPES and apply extra scrutiny to those specific decision contexts.
-
----
-
-## Next Steps
-
-### Recommended Follow-Up Analyses
-
-1. ✅ **Per-Model Analysis:** COMPLETED - Revealed 2.5× bias range and model-specific patterns
-2. **Reasoning Analysis:** Did models explicitly mention demographics in their reasoning?
-3. **Choice Direction Analysis:** Which demographics received systematically different treatment? (Who gets "favorable" choices?)
-4. **Confidence/Difficulty Analysis:** Does pressure affect decision confidence differently by demographic?
-5. **Gemini Deep-Dive:** Why does "Customization vs Uniformity" trigger gender bias only in Gemini?
-
-### Future Experiments
-
-1. **Extended Reasoning Impact:** Does Claude's `<thinking>` or o1's reasoning reduce bias?
-   - Hypothesis: Deliberative reasoning may reduce demographic influence
-   - Test: Rerun high-bias dilemmas with extended reasoning enabled
-
-2. **Model-Specific Mitigation:** Test tailored interventions per model
-   - Claude: Remove high-stakes framing ("lives depend on this")
-   - GPT-4.1: Remove time constraints ("you have X seconds")
-   - Gemini: Demographic-blind preprocessing (remove names before inference)
-
-3. **Dilemma Characteristic Analysis:** What makes certain dilemmas universally challenging?
-   - Analyze "The Carbon Confession" (bias across all models)
-   - Compare with no-bias dilemmas (e.g., "Energy Ethics")
-   - Extract features that predict bias vulnerability
-
-4. **Explicit Fairness Instructions:** Test if direct guidance reduces bias
-   - System prompt: "Treat all demographics identically"
-   - VALUES.md with fairness principles
-   - Test if this helps Gemini specifically
+1. **Reasoning analysis**: Did models explicitly reference demographics?
+2. **Choice direction analysis**: Which demographics received favorable treatment?
+3. **Extended reasoning impact**: Test Claude thinking and o1 reasoning modes
+4. **Model-specific mitigation**: Test tailored interventions per model
+5. **Dilemma characteristic analysis**: What features predict bias vulnerability?
+6. **Explicit fairness instructions**: Test VALUES.md with fairness principles
 
 ---
 
-## Data Availability
-
-All data and code for this experiment are preserved in:
-- `research/2025-10-24-bias-under-pressure/`
-- Experiment ID: `b191388e-3994-4ebd-96cc-af0d033c5230`
-- 384 judgements, 8 dilemmas, 3 models, 4 conditions, 4 demographic variations
-
-Full judgements, dilemmas, and analysis code are included for reproducibility.
-
----
-
-## Conclusion
-
-**Model choice matters MORE than pressure for bias reduction.**
-
-### Three Key Findings:
-
-1. **Model Differences Are Enormous (2.5× range)**
-   - Claude Sonnet 4.5: 12.5% bias (most robust)
-   - GPT-4.1: 18.8% bias
-   - Gemini 2.5 Pro: 31.2% bias (highest)
-
-2. **Pressure Effects Are Model-Specific**
-   - Claude: High-stakes activated (0% → 25%)
-   - GPT-4.1: Time-urgency specific (12.5% → 37.5%)
-   - Gemini: Already-elevated baseline (no amplification)
-
-3. **Context Matters More Than Pressure**
-   - Most dilemmas showed NO bias regardless of pressure
-   - "The Carbon Confession" challenged ALL models
-   - "Customization vs Uniformity" problematic ONLY for Gemini
-
-### Practical Takeaway
-
-**Choosing Claude over Gemini reduces bias by 2.5×** - far more effective than removing pressure conditions. For bias-critical applications, MODEL SELECTION is the primary intervention lever, followed by model-specific pressure mitigation strategies.
-
-The myth of "LLM bias under pressure" as a universal phenomenon is FALSE. Instead, we observe model-specific, context-specific patterns requiring tailored mitigation approaches.
+**Last Updated**: 2025-10-24

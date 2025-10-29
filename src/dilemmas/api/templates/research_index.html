@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+
+{% block title %}Research Experiments - VALUES.md{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 30px;">
+    <h1>Research Experiments</h1>
+    <p class="subtitle">Studies on LLM ethical decision-making</p>
+</div>
+
+{% if error %}
+<div class="card" style="background: #fff3cd; border-left-color: #ffc107;">
+    <p>{{ error }}</p>
+</div>
+{% elif experiments|length == 0 %}
+<div class="empty-state">
+    <p>No research experiments found.</p>
+</div>
+{% else %}
+
+{% for experiment in experiments %}
+<div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
+        <div>
+            <h2 style="margin: 0;">
+                <a href="/research/{{ experiment.slug }}" style="color: inherit;">{{ experiment.title }}</a>
+            </h2>
+            <span class="badge badge-domain">{{ experiment.date }}</span>
+        </div>
+    </div>
+
+    {% if experiment.summary %}
+    <p style="color: #4a4a4a; margin: 15px 0;">{{ experiment.summary }}</p>
+    {% endif %}
+
+    {% if experiment.key_finding %}
+    <div style="background: #f5f5f3; border-left: 3px solid #2c5282; padding: 15px; margin: 15px 0;">
+        <strong style="color: #2c5282;">Key Finding:</strong> {{ experiment.key_finding }}
+    </div>
+    {% endif %}
+
+    <div class="meta">
+        {% if experiment.models %}
+        <strong>Models:</strong> {{ experiment.models|join(', ') }}
+        <br>
+        {% endif %}
+        {% if experiment.data_stats.judgements_count > 0 %}
+        <strong>Data:</strong> {{ experiment.data_stats.judgements_count }} judgements
+        {% if experiment.data_stats.dilemmas_count > 0 %}
+        across {{ experiment.data_stats.dilemmas_count }} dilemmas
+        {% endif %}
+        {% endif %}
+        {% if experiment.tags %}
+        <br>
+        <strong>Tags:</strong>
+        {% for tag in experiment.tags %}
+        <span class="badge badge-domain" style="font-size: 0.85em;">{{ tag }}</span>
+        {% endfor %}
+        {% endif %}
+    </div>
+
+    <div style="margin-top: 15px;">
+        <a href="/research/{{ experiment.slug }}" class="badge" style="background: #2c5282; color: white; text-decoration: none;">
+            View Findings →
+        </a>
+    </div>
+</div>
+{% endfor %}
+
+{% endif %}
+
+<style>
+    /* Mobile responsive adjustments for research index */
+    @media (max-width: 768px) {
+        /* Key finding boxes */
+        .card > div[style*="border-left"] {
+            padding: 12px !important;
+            font-size: 0.95em;
+        }
+
+        /* Meta information */
+        .meta {
+            font-size: 0.8em;
+        }
+
+        /* View Findings button */
+        .card > div:last-child a {
+            display: block;
+            text-align: center;
+            padding: 12px 20px !important;
+        }
+    }
+</style>
+{% endblock %}

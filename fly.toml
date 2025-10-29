@@ -1,0 +1,47 @@
+# fly.toml app configuration file
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+
+app = "values-md-dilemmas"
+primary_region = "sjc"  # San Jose, CA - change to your preferred region
+
+[build]
+
+[env]
+  PORT = "8080"
+
+# Health check to ensure app is running
+[checks]
+  [checks.alive]
+    type = "http"
+    path = "/api/dilemmas?limit=1"
+    interval = "30s"
+    timeout = "5s"
+    grace_period = "10s"
+
+[[services]]
+  internal_port = 8080
+  protocol = "tcp"
+  auto_stop_machines = false  # Keep at least one machine running
+  auto_start_machines = true
+  min_machines_running = 1
+
+  [[services.ports]]
+    port = 80
+    handlers = ["http"]
+    force_https = true  # Redirect HTTP to HTTPS
+
+  [[services.ports]]
+    port = 443
+    handlers = ["tls", "http"]
+
+  # HTTP service health check
+  [[services.tcp_checks]]
+    interval = "15s"
+    timeout = "10s"
+    grace_period = "30s"
+
+# VM configuration
+[vm]
+  cpu_kind = "shared"
+  cpus = 1
+  memory_mb = 512  # Increased from 256 to handle migrations better

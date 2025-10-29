@@ -111,6 +111,7 @@ generation:
     - v5_consequentialist
     - v6_relational
     - v7_systemic
+    - v8_concise  # Short, focused dilemmas (400-800 chars)
 
   # Seed sampling defaults
   num_actors: 3

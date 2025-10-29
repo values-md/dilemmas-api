@@ -246,13 +246,94 @@ research/YYYY-MM-DD-experiment-name/
 ├── README.md           # Full design, hypotheses, methods
 ├── run.py              # Experiment runner script
 ├── analyze.py          # Analysis script (stats only)
-├── findings.md         # Results + interpretation (after analysis)
+├── findings.md         # Results + interpretation (YAML frontmatter required)
 ├── values/             # VALUES.md files (if testing frameworks)
 ├── data/               # Exported CSV files
 ├── judgements.json     # Full judgement data
 ├── dilemmas.json       # Dilemmas used
 └── config.json         # Experiment metadata
 ```
+
+### Findings.md Structure
+
+All `findings.md` files MUST use YAML frontmatter for metadata extraction. This enables the research index page to display experiment information properly.
+
+**Required Structure:**
+
+```markdown
+---
+# Core Metadata
+title: "Your Experiment Title"
+slug: "YYYY-MM-DD-experiment-name"
+date: YYYY-MM-DD
+status: completed  # or: in_progress
+experiment_id: "uuid-string-here"
+
+# Research Summary
+research_question: "Does X affect Y under Z conditions?"
+
+abstract: |
+  One-paragraph summary of the experiment (3-5 sentences).
+  State the research question, design, key findings, and implications.
+  This appears on the research index page.
+
+key_finding: "One-sentence highlight of the most important result"
+
+# Experiment Parameters
+models:
+  - Model Name 1
+  - Model Name 2
+
+data:
+  dilemmas: 10
+  judgements: 150
+  conditions: 3
+
+tags:
+  - methodology
+  - topic
+  - model-comparison
+---
+
+# [Title]
+
+## Background
+...
+
+## Methodology
+...
+
+## Results
+...
+```
+
+**Key Points:**
+
+- **YAML frontmatter is required** - Parser extracts metadata from YAML, not markdown body
+- **Abstract is your summary** - Keep to 3-5 sentences, displays on index page
+- **Key finding is your headline** - One sentence that captures the core result
+- **Models list** - Display on index cards ("Tested: Claude Sonnet 4.5, GPT-4.1")
+- **Tags** - Help users browse related experiments
+- **Use template** - Copy from `research/TEMPLATE_findings.md`
+
+**Structure Sections:**
+
+1. **Background** - Why this question matters (2-3 paragraphs)
+2. **Methodology** - Design, materials, measurements, procedure
+3. **Results** - Primary and secondary findings with data
+4. **Discussion** - Interpretation, explanations, limitations
+5. **Implications** - For AI safety, agent design, future research
+6. **Future Directions** - Specific follow-up experiments
+
+**Scientific Rigor:**
+
+- ✅ Clear hypotheses and design
+- ✅ Honest limitations section
+- ✅ Proper statistical interpretation
+- ✅ No internal notes or TODOs
+- ✅ Reproducible methods
+- ❌ No overstated claims
+- ❌ No anthropomorphic mechanism claims
 
 ### Workflow Steps
 
@@ -318,6 +399,8 @@ LIMIT 5;
 uv run python scripts/export_experiment_data.py EXPERIMENT_ID research/YYYY-MM-DD-experiment-name/data
 ```
 
+**Note**: Web users will download data via the download button on the experiment page. This export step is primarily for initial data preparation.
+
 **7. Analyze**
 ```bash
 uv run python research/YYYY-MM-DD-experiment-name/analyze.py
@@ -329,14 +412,50 @@ uv run python research/YYYY-MM-DD-experiment-name/analyze.py
 ```
 
 **8. Write Findings**
-- Interpret results in `findings.md`
-- Link to specific statistics from analyze.py
-- Discuss limitations
-- Propose follow-ups
-
-**9. Update Research Index**
 ```bash
-# Add to research/index.md under "Completed Experiments"
+# Copy template
+cp research/TEMPLATE_findings.md research/YYYY-MM-DD-experiment-name/findings.md
+
+# Fill in YAML frontmatter:
+# - title, date, status, experiment_id
+# - research_question, abstract, key_finding
+# - models, data stats, tags
+
+# Write sections:
+# - Background, Methodology, Results, Discussion
+# - Implications, Limitations, Future Directions
+# (No Methods Note - data available via web download button)
+```
+
+**Key Requirements:**
+- Use YAML frontmatter (required for research index)
+- Link to specific statistics from analyze.py
+- Honest limitations section
+- Scientific rigor (no overstated claims)
+- **No Methods Note section** - Data is available via download button on web UI
+
+**9. Verify Data Availability**
+```bash
+# Ensure all key files exist in experiment folder:
+ls research/YYYY-MM-DD-experiment-name/
+
+# Should contain:
+# - findings.md (with YAML frontmatter)
+# - README.md
+# - config.json
+# - dilemmas.json
+# - judgements.json
+# - analyze.py (if applicable)
+# - data/*.csv (analysis outputs)
+# - values/*.md (if testing frameworks)
+```
+
+Web users will access data via the "📥 Download Data Bundle" button on the experiment page.
+
+**10. Update Research Index**
+```bash
+# Add to research/index.md under "Completed Experiments" (optional)
+# The web UI automatically discovers new experiments
 ```
 
 ---
@@ -635,5 +754,5 @@ GROUP BY error;
 
 ---
 
-*Last updated: 2025-10-24*
-*Based on lessons from: Extreme VALUES.md Compliance, Bias Under Pressure*
+*Last updated: 2025-10-29*
+*Based on lessons from: Extreme VALUES.md Compliance, Bias Under Pressure, Theory vs Action Gap (Parts 1 & 2), VALUES.md Impact, Temperature Consistency*
