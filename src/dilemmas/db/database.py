@@ -4,6 +4,7 @@ Supports both SQLite (development/testing) and Postgres (production).
 Uses async SQLAlchemy for compatibility with pydantic-ai agents.
 """
 
+import os
 from pathlib import Path
 from typing import AsyncGenerator
 
@@ -33,6 +34,21 @@ class Database:
             db_path = Path(__file__).parent.parent.parent.parent / "data" / "dilemmas.db"
             db_path.parent.mkdir(parents=True, exist_ok=True)
             database_url = f"sqlite+aiosqlite:///{db_path}"
+        else:
+            # Clean up Postgres URLs for asyncpg compatibility
+            if database_url.startswith("postgresql://"):
+                database_url = database_url.replace("postgresql://", "postgresql+asyncpg://", 1)
+
+            # Fix SSL parameters (Neon uses sslmode, asyncpg uses ssl)
+            if "sslmode=" in database_url:
+                database_url = database_url.replace("?sslmode=require", "?ssl=require")
+                database_url = database_url.replace("&sslmode=require", "&ssl=require")
+
+            # Remove channel_binding parameter (asyncpg doesn't support it)
+            if "channel_binding=" in database_url:
+                import re
+                database_url = re.sub(r'[&?]channel_binding=[^&]*', '', database_url)
+                database_url = database_url.replace('&&', '&').rstrip('?&')
 
         # Create async engine
         self.engine = create_async_engine(
@@ -86,13 +102,17 @@ def get_database(database_url: str | None = None) -> Database:
     """Get or create the global database instance.
 
     Args:
-        database_url: Optional database URL. Only used on first call.
+        database_url: Optional database URL. If not provided, reads from DATABASE_URL
+                     environment variable. Falls back to SQLite if neither is set.
 
     Returns:
         Database instance
     """
     global _db
     if _db is None:
+        # If no URL provided, try to read from environment
+        if database_url is None:
+            database_url = os.getenv("DATABASE_URL")
         _db = Database(database_url)
     return _db
 
