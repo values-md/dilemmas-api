@@ -44,6 +44,19 @@ database_url_from_env = os.getenv("DATABASE_URL")
 if database_url_from_env and database_url_from_env.startswith("postgresql://"):
     database_url_from_env = database_url_from_env.replace("postgresql://", "postgresql+asyncpg://", 1)
 
+# Fix SSL parameters for asyncpg (convert sslmode to ssl)
+# Neon uses ?sslmode=require, but asyncpg doesn't understand sslmode
+if database_url_from_env and "sslmode=" in database_url_from_env:
+    database_url_from_env = database_url_from_env.replace("?sslmode=require", "?ssl=require")
+    database_url_from_env = database_url_from_env.replace("&sslmode=require", "&ssl=require")
+
+# Remove channel_binding parameter (asyncpg doesn't support it)
+if database_url_from_env and "channel_binding=" in database_url_from_env:
+    import re
+    database_url_from_env = re.sub(r'[&?]channel_binding=[^&]*', '', database_url_from_env)
+    # Clean up any double & or trailing ?
+    database_url_from_env = database_url_from_env.replace('&&', '&').rstrip('?&')
+
 db = get_database(database_url_from_env)
 database_url = str(db.engine.url)
 
