@@ -119,7 +119,7 @@ generation:
   # num_constraints auto-calculated from difficulty
 
   # Quality thresholds
-  enable_validation: false  # Set to true when we build validator
+  enable_validation: true  # Enable Tier 3 LLM validation for quality control
   min_quality_score: 7.0
   min_originality_score: 6.0
 

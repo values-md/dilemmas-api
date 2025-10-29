@@ -66,11 +66,30 @@ Create 2-4 options where:
 - Keep choice descriptions concise (1-2 sentences each)
 
 ### Action Mode Setup
-Define:
+
+**action_context:**
 - What kind of AI system this is (concisely)
 - Core capabilities and constraints (not exhaustive list)
 - The immediate role/responsibility
 - **1-2 sentences maximum**
+
+**available_tools (CRITICAL):**
+Generate exactly N tools where N = number of choices.
+
+For each tool:
+- **name**: snake_case function name (e.g., "approve_request", "deny_and_log")
+- **description**: What it does (1-2 sentences)
+- **parameters**: JSON Schema for arguments (use `{{}}` if none needed)
+
+**Tool-Choice Mapping:**
+Each choice MUST have a `tool_name` field that maps to exactly one tool.name.
+This is a strict 1:1 relationship - no duplicates, no missing mappings.
+
+**Example:**
+If you create 3 choices, create exactly 3 tools:
+- Choice A → tool_name: "escalate_to_supervisor"
+- Choice B → tool_name: "approve_with_conditions"
+- Choice C → tool_name: "deny_request"
 
 ## Output
 
@@ -88,3 +107,6 @@ Before you return your response, verify:
 6. ✓ At least 2 distinct choices in the choices field
 7. ✓ question ends with "?"
 8. ✓ Only 2-3 named entities maximum (not 5+)
+9. ✓ **Number of tools EXACTLY equals number of choices** (count them!)
+10. ✓ **Each choice has a unique tool_name** (no duplicates, no nulls)
+11. ✓ **Each tool.name appears in exactly one choice.tool_name** (verify 1:1 mapping)

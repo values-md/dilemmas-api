@@ -79,35 +79,59 @@ class DilemmaValidator:
         """
         logger.info(f"Validating dilemma: {dilemma.title}")
 
-        # Format choices for prompt
+        # Format choices for prompt WITH tool_name
         choices_formatted = "\n".join(
-            f"- **{c.label}**: {c.description}" for c in dilemma.choices
+            f"- **{c.label}** (tool: {c.tool_name or 'MISSING'}): {c.description}"
+            for c in dilemma.choices
         )
+
+        # Format tools for prompt
+        if dilemma.available_tools:
+            tools_formatted = "\n".join(
+                f"- **{t.name}**: {t.description}" for t in dilemma.available_tools
+            )
+        else:
+            tools_formatted = "(no tools defined)"
 
         # Format variables/modifiers presence
         has_variables = f"Yes ({len(dilemma.variables)} variables)" if dilemma.variables else "No"
         has_modifiers = f"Yes ({len(dilemma.modifiers)} modifiers)" if dilemma.modifiers else "No"
 
-        # Build prompt
-        prompt = self.validate_prompt_template.format(
-            title=dilemma.title,
-            situation_template=dilemma.situation_template,
-            question=dilemma.question,
-            choices_formatted=choices_formatted,
-            action_context=dilemma.action_context or "(not provided)",
-            has_variables=has_variables,
-            has_modifiers=has_modifiers,
-            difficulty_intended=dilemma.difficulty_intended,
-        )
+        # Build prompt using manual replacement to avoid issues with braces in content
+        # Cannot use .format() because dilemma text might contain {PLACEHOLDERS}
+        prompt = self.validate_prompt_template
+        prompt = prompt.replace("{title}", dilemma.title)
+        prompt = prompt.replace("{situation_template}", dilemma.situation_template)
+        prompt = prompt.replace("{question}", dilemma.question)
+        prompt = prompt.replace("{choices_formatted}", choices_formatted)
+        prompt = prompt.replace("{tools_formatted}", tools_formatted)
+        prompt = prompt.replace("{action_context}", dilemma.action_context or "(not provided)")
+        prompt = prompt.replace("{has_variables}", has_variables)
+        prompt = prompt.replace("{has_modifiers}", has_modifiers)
+        prompt = prompt.replace("{difficulty_intended}", str(dilemma.difficulty_intended))
 
         # Run validation
-        result = await self.validator_agent.run(prompt)
+        try:
+            result = await self.validator_agent.run(prompt)
+        except Exception as e:
+            logger.error(f"Validation agent crashed: {type(e).__name__}: {e}")
+            import traceback
+            logger.error(f"Traceback:\n{traceback.format_exc()}")
+            raise
 
-        logger.info(
-            f"Validation complete: recommendation={result.output.recommendation}, "
-            f"quality={result.output.quality_score}/10, "
-            f"interest={result.output.interest_score}/10"
-        )
+        # DEBUG: Log validation results
+        logger.info(f"\n{'='*60}")
+        logger.info(f"VALIDATION RESULT")
+        logger.info(f"{'='*60}")
+        logger.info(f"Recommendation: {result.output.recommendation}")
+        logger.info(f"Quality: {result.output.quality_score}/10")
+        logger.info(f"Interest: {result.output.interest_score}/10")
+        logger.info(f"Realism: {result.output.realism_score}/10")
+        logger.info(f"Issues found: {len(result.output.issues)}")
+        for issue in result.output.issues:
+            logger.info(f"  - [{issue.severity}] {issue.field}: {issue.message[:80]}...")
+        logger.info(f"Can auto-repair: {result.output.can_auto_repair}")
+        logger.info(f"{'='*60}\n")
 
         return result.output
 
@@ -131,10 +155,19 @@ class DilemmaValidator:
                 f"Dilemma cannot be auto-repaired. Issues: {[i.message for i in validation.issues]}"
             )
 
-        # Format choices for prompt
+        # Format choices for prompt WITH tool_name
         choices_formatted = "\n".join(
-            f"- **{c.label}**: {c.description}" for c in dilemma.choices
+            f"- **{c.label}** (tool: {c.tool_name or 'MISSING'}): {c.description}"
+            for c in dilemma.choices
         )
+
+        # Format tools for prompt
+        if dilemma.available_tools:
+            tools_formatted = "\n".join(
+                f"- **{t.name}**: {t.description}" for t in dilemma.available_tools
+            )
+        else:
+            tools_formatted = "(no tools defined)"
 
         # Format issues for prompt
         issues_formatted = "\n".join(
@@ -142,19 +175,32 @@ class DilemmaValidator:
             for i in validation.issues
         )
 
-        # Build repair prompt
-        prompt = self.repair_prompt_template.format(
-            title=dilemma.title,
-            situation_template=dilemma.situation_template,
-            question=dilemma.question,
-            choices_formatted=choices_formatted,
-            action_context=dilemma.action_context or "(not provided)",
-            issues_formatted=issues_formatted,
-        )
+        # Build repair prompt using manual replacement to avoid issues with braces
+        prompt = self.repair_prompt_template
+        prompt = prompt.replace("{title}", dilemma.title)
+        prompt = prompt.replace("{situation_template}", dilemma.situation_template)
+        prompt = prompt.replace("{question}", dilemma.question)
+        prompt = prompt.replace("{choices_formatted}", choices_formatted)
+        prompt = prompt.replace("{tools_formatted}", tools_formatted)
+        prompt = prompt.replace("{action_context}", dilemma.action_context or "(not provided)")
+        prompt = prompt.replace("{issues_formatted}", issues_formatted)
 
         # Run repair
         result = await self.repairer_agent.run(prompt)
         repair_plan = result.output
+
+        # DEBUG: Log repair plan
+        logger.info(f"\n{'='*60}")
+        logger.info(f"REPAIR PLAN")
+        logger.info(f"{'='*60}")
+        logger.info(f"Can repair: {repair_plan.can_repair}")
+        logger.info(f"Confidence: {repair_plan.confidence:.2f}")
+        logger.info(f"Changes suggested: {list(repair_plan.changes.keys())}")
+        for field, new_value in repair_plan.changes.items():
+            preview = new_value[:100] + "..." if len(new_value) > 100 else new_value
+            logger.info(f"  - {field}: {preview}")
+        logger.info(f"Reasoning: {repair_plan.reasoning[:200]}...")
+        logger.info(f"{'='*60}\n")
 
         if not repair_plan.can_repair:
             raise ValidationError(
@@ -169,13 +215,27 @@ class DilemmaValidator:
         # Apply repairs to create new dilemma
         repaired_data = dilemma.model_dump()
 
+        # DEBUG: Log what repair plan suggests
+        logger.info(f"Repair plan suggests changes to: {list(repair_plan.changes.keys())}")
+
         for field, new_value in repair_plan.changes.items():
             if field in repaired_data:
                 repaired_data[field] = new_value
                 logger.info(f"Applied repair to {field}")
+            else:
+                logger.warning(
+                    f"Repair suggested invalid field '{field}' (not in Dilemma model) - ignoring. "
+                    f"Valid fields: {list(repaired_data.keys())[:10]}..."
+                )
+                # Don't apply repairs to non-existent fields
 
-        # Create repaired dilemma
-        repaired = Dilemma(**repaired_data)
+        # Create repaired dilemma (this might fail if changes dict has issues)
+        try:
+            repaired = Dilemma(**repaired_data)
+        except Exception as e:
+            logger.error(f"Failed to create repaired dilemma: {e}")
+            logger.error(f"Repair changes attempted: {repair_plan.changes}")
+            raise
 
         logger.info(
             f"Repair complete: {len(repair_plan.changes)} fields changed. "

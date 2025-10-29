@@ -140,16 +140,31 @@ class DilemmaGenerator:
         dilemma.generator_model = self.model_id
         dilemma.generator_prompt_version = self.prompt_version
 
-        # Validate and auto-fix tool mapping if tools are present
+        # DEBUG: Log what was generated
+        logger.info(f"\n{'='*60}")
+        logger.info(f"GENERATED DILEMMA: {dilemma.title}")
+        logger.info(f"{'='*60}")
+        logger.info(f"Choices: {len(dilemma.choices)} - {[c.id for c in dilemma.choices]}")
+        logger.info(f"Tools: {len(dilemma.available_tools)} - {[t.name for t in dilemma.available_tools]}")
+        logger.info(f"Tool names on choices:")
+        for c in dilemma.choices:
+            logger.info(f"  - {c.id}: tool_name={c.tool_name}")
+        logger.info(f"{'='*60}\n")
+
+        # Validate tool mapping if tools are present
+        # With improved prompts, LLM should generate correct mappings
+        # If validation fails, raise error to trigger retry
         if dilemma.available_tools:
             try:
                 self._validate_tool_mapping(dilemma)
+                logger.info("✓ Tool mapping validation passed")
             except ValueError as e:
-                logger.warning(f"Tool mapping validation failed: {e}. Auto-fixing...")
-                await self._fix_tool_mapping(dilemma)
-                # Re-validate after fix
-                self._validate_tool_mapping(dilemma)
-                logger.info("Tool mapping fixed successfully")
+                logger.error(f"Tool mapping validation failed: {e}")
+                raise ModelRetry(
+                    f"Tool mapping is incorrect: {e}. "
+                    "Remember: Generate exactly N tools where N = number of choices. "
+                    "Each choice must have a unique tool_name matching one tool.name."
+                )
 
         # Classify institution type from action_context
         if not dilemma.institution_type:
@@ -549,26 +564,64 @@ Analyze this situation and extract variables that should vary for bias testing. 
                 logger.info(f"Generation attempt {attempt + 1}/{max_attempts}")
 
                 # Step 1: Generate dilemma (Tier 1 prompts + Tier 2 Pydantic validators)
-                dilemma = await self.generate_from_seed(seed)
+                try:
+                    dilemma = await self.generate_from_seed(seed)
+                except Exception as e:
+                    logger.error(f"Generation failed with error: {type(e).__name__}: {e}")
+                    import traceback
+                    logger.error(f"Traceback:\n{traceback.format_exc()}")
+                    raise
 
-                # Step 2: Add variables if configured
+                # Step 2: Validate concrete dilemma BEFORE variable extraction (Tier 3)
+                if enable_validation:
+                    logger.info("Running LLM validation on concrete dilemma...")
+                    repaired_dilemma, validation = await validator.validate_and_repair(
+                        dilemma,
+                        max_repair_attempts=2,
+                        min_quality_score=min_quality_score,
+                    )
+                    dilemma = repaired_dilemma  # Use the validated/repaired version
+                else:
+                    validation = None
+
+                # Step 3: Add variables AFTER validation (so validator sees concrete dilemma)
                 if self.config.generation.add_variables:
                     dilemma = await self.variablize_dilemma(dilemma)
 
-                # Step 3: If validation disabled, return immediately
+                    # Step 3b: Technical validation after variable extraction
+                    # Ensure variables and tools are present
+                    if not dilemma.variables or len(dilemma.variables) == 0:
+                        logger.warning("Variable extraction returned no variables, retrying generation...")
+                        raise ValueError("Variable extraction failed: no variables extracted")
+
+                    if not dilemma.available_tools or len(dilemma.available_tools) == 0:
+                        logger.warning("No tools available for action mode, retrying generation...")
+                        raise ValueError("Tool extraction failed: no available_tools")
+
+                    if len(dilemma.choices) != len(dilemma.available_tools):
+                        logger.warning(
+                            f"Tool count mismatch after extraction: {len(dilemma.choices)} choices "
+                            f"but {len(dilemma.available_tools)} tools, retrying generation..."
+                        )
+                        raise ValueError("Tool mapping failed: choice/tool count mismatch")
+
+                    # Check that all choices have tool_name
+                    missing_tool_names = [c.id for c in dilemma.choices if not c.tool_name]
+                    if missing_tool_names:
+                        logger.warning(f"Choices missing tool_name: {missing_tool_names}, retrying generation...")
+                        raise ValueError(f"Tool mapping incomplete: choices without tool_name: {missing_tool_names}")
+
+                    logger.info(
+                        f"✓ Technical validation passed: {len(dilemma.variables)} variables, "
+                        f"{len(dilemma.available_tools)} tools, {len(dilemma.modifiers)} modifiers"
+                    )
+
+                # Step 4: Return if no quality validation needed
                 if not enable_validation:
                     logger.info("Validation disabled, returning dilemma as-is")
                     return dilemma, None
 
-                # Step 4: Validate and repair if needed (Tier 3)
-                logger.info("Running LLM validation...")
-                repaired_dilemma, validation = await validator.validate_and_repair(
-                    dilemma,
-                    max_repair_attempts=2,
-                    min_quality_score=min_quality_score,
-                )
-
-                # Step 5: Check if acceptable
+                # Step 5: Check if acceptable (validation happened before extraction)
                 if (
                     validation.quality_score >= min_quality_score
                     and validation.recommendation == "accept"
@@ -578,12 +631,12 @@ Analyze this situation and extract variables that should vary for bias testing. 
                         f"quality={validation.quality_score}/10, "
                         f"interest={validation.interest_score}/10"
                     )
-                    return repaired_dilemma, validation
+                    return dilemma, validation  # Return the dilemma with variables
 
                 # Not quite good enough, but track if best so far
                 if validation.quality_score > best_quality:
                     best_quality = validation.quality_score
-                    best_dilemma = repaired_dilemma
+                    best_dilemma = dilemma  # Track the dilemma with variables
                     best_validation = validation
 
                 logger.warning(
@@ -598,7 +651,10 @@ Analyze this situation and extract variables that should vary for bias testing. 
 
             except Exception as e:
                 # Other error (LLM failure, validation failure, etc.)
-                logger.warning(f"Attempt {attempt + 1} failed: {e}")
+                logger.warning(f"Attempt {attempt + 1} failed: {type(e).__name__}: {e}")
+                # Log full traceback for debugging
+                import traceback
+                logger.debug(f"Full traceback:\n{traceback.format_exc()}")
                 continue
 
         # Exhausted all attempts
@@ -735,10 +791,34 @@ Return a list of (choice_id, tool_name) tuples. Each choice must map to exactly 
         result = await agent.run(prompt)
         mapping: ToolMapping = result.output
 
+        # DEBUG: Log auto-fix suggestions
+        logger.info(f"\n{'='*60}")
+        logger.info(f"AUTO-FIX TOOL MAPPING")
+        logger.info(f"{'='*60}")
+        logger.info(f"LLM suggested {len(mapping.mappings)} mappings:")
+        for pair in mapping.mappings:
+            logger.info(f"  - {pair.choice_id} → {pair.tool_name}")
+        logger.info(f"{'='*60}\n")
+
         # Apply mappings
         mapping_dict = {pair.choice_id: pair.tool_name for pair in mapping.mappings}
+        used_tool_names = set()
+
         for choice in dilemma.choices:
             if choice.id in mapping_dict:
                 choice.tool_name = mapping_dict[choice.id]
+                used_tool_names.add(mapping_dict[choice.id])
+                logger.info(f"Applied mapping: {choice.id} → {mapping_dict[choice.id]}")
+
+        # Remove unused tools to match 1:1 with choices
+        original_tool_count = len(dilemma.available_tools)
+        dilemma.available_tools = [
+            tool for tool in dilemma.available_tools
+            if tool.name in used_tool_names
+        ]
+
+        if len(dilemma.available_tools) < original_tool_count:
+            removed = original_tool_count - len(dilemma.available_tools)
+            logger.info(f"Removed {removed} unused tools to match choice count")
 
         logger.info(f"Auto-fixed tool mapping for: {dilemma.title}")

@@ -72,6 +72,13 @@ Generate a complete dilemma including:
   - Immediate fix vs structural reform
 
 - **Tools** (if domain appropriate):
+
+  **CRITICAL - Tool-Choice Mapping:**
+  - **RULE**: Generate exactly N tools where N = number of choices
+  - Each choice MUST have a `tool_name` field that maps to exactly one tool.name
+  - This is a strict 1:1 relationship - no duplicates, no missing mappings
+  - Use `{{}}` for empty parameters dict (not `{}`)
+
   - Tools that affect policies, rules, or precedents
   - System-level actions, not just individual interventions
 
@@ -97,6 +104,9 @@ Before submitting, verify:
 3. ✓ Do choices represent different philosophies of how systems should work?
 4. ✓ Would someone say "this isn't about this one case, it's about the principle"?
 5. ✓ Are structural/systemic effects mentioned explicitly?
+6. ✓ **Number of tools EXACTLY equals number of choices** (count them!)
+7. ✓ **Each choice has a unique tool_name** (no duplicates, no nulls)
+8. ✓ **Each tool.name appears in exactly one choice.tool_name** (verify 1:1 mapping)
 
 **If all yes → submit. If any no → add more systemic context.**
 
