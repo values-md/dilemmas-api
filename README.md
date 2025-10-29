@@ -307,6 +307,22 @@ fly ssh console
 fly certs add research.values.md
 ```
 
+**Sync local data to production:**
+```bash
+# Preview what would be synced
+uv run python scripts/sync_dilemmas_to_prod.py --dry-run
+uv run python scripts/sync_judgements_to_prod.py --dry-run
+
+# Sync specific collections
+uv run python scripts/sync_dilemmas_to_prod.py --collections initial_experiments
+uv run python scripts/sync_judgements_to_prod.py --collections initial_experiments
+
+# Only sync judgements if dilemmas exist in prod
+uv run python scripts/sync_judgements_to_prod.py --only-with-dilemmas
+```
+
+Requires `PROD_DATABASE_URL` in `.env` (Neon/Postgres connection string).
+
 ## Development
 
 ### Test Database Operations

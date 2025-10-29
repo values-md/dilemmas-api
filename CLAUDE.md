@@ -371,6 +371,32 @@ uv run python scripts/explore_db.py  # Datasette (SQL queries)
 # Opens at http://localhost:8001 - great for JSON inspection and SQL
 ```
 
+**Sync to Production:**
+```bash
+# Preview what would be synced (dry-run mode)
+uv run python scripts/sync_dilemmas_to_prod.py --dry-run
+uv run python scripts/sync_judgements_to_prod.py --dry-run
+
+# Sync all local dilemmas to production
+uv run python scripts/sync_dilemmas_to_prod.py
+
+# Sync specific collections
+uv run python scripts/sync_dilemmas_to_prod.py --collections "initial_experiments,standard_v1"
+uv run python scripts/sync_judgements_to_prod.py --collections initial_experiments
+
+# Sync judgements for a specific experiment
+uv run python scripts/sync_judgements_to_prod.py --experiment-id abc123...
+
+# Only sync judgements if their dilemmas exist in production
+uv run python scripts/sync_judgements_to_prod.py --only-with-dilemmas
+```
+
+**Requirements:**
+- Set `PROD_DATABASE_URL` in `.env` (Neon/Postgres connection string)
+- Scripts compare by ID and only add missing records (safe, won't overwrite)
+- Shows preview table and asks for confirmation before syncing
+- Both dilemmas and judgements can be filtered by collection
+
 ## Key Design Decisions
 - **Python 3.12+** for modern type hints
 - **uv** for fast dependency management
