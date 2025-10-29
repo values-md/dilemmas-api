@@ -13,6 +13,11 @@ fi
 
 echo "Database URL: ${DATABASE_URL%%:*}://****" # Show only protocol for security
 
+# Debug: Show if URL has sslmode before cleaning
+if [[ "$DATABASE_URL" == *"sslmode"* ]]; then
+    echo "⚠️  URL contains 'sslmode' parameter (will be cleaned by alembic/env.py)"
+fi
+
 # Run database migrations
 echo ""
 echo "Running database migrations..."
