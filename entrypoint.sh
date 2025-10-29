@@ -29,4 +29,7 @@ fi
 echo ""
 echo "Starting FastAPI server on port 8080..."
 echo "=========================================="
-exec uv run uvicorn dilemmas.api.app:app --host 0.0.0.0 --port 8080
+
+# Activate virtual environment and run uvicorn directly
+source /app/.venv/bin/activate
+exec uvicorn dilemmas.api.app:app --host 0.0.0.0 --port 8080

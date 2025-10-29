@@ -20,11 +20,12 @@ COPY alembic.ini .
 COPY alembic/ ./alembic/
 COPY src/ ./src/
 COPY prompts/ ./prompts/
-COPY seeds/ ./seeds/
+COPY research/ ./research/
 COPY config.yaml .
 
-# Install dependencies
+# Install dependencies and package
 RUN uv sync --frozen
+RUN uv pip install -e .
 
 # Copy entrypoint script
 COPY entrypoint.sh .
