@@ -194,7 +194,13 @@ async def main():
         console.print("\n[cyan]Syncing to production...[/cyan]")
         async with prod_session_maker() as prod_session:
             for i, dilemma in enumerate(missing_dilemmas, 1):
-                prod_session.add(dilemma)
+                # Convert to domain model to get all fields populated correctly
+                domain_dilemma = dilemma.to_domain()
+
+                # Use from_domain to create properly populated DB instance
+                prod_dilemma = DilemmaDB.from_domain(domain_dilemma)
+
+                prod_session.add(prod_dilemma)
 
                 if i % 10 == 0 or i == len(missing_dilemmas):
                     console.print(f"  Added {i}/{len(missing_dilemmas)}...")

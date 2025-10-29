@@ -77,13 +77,19 @@ class DilemmaDB(SQLModel, table=True):
         Returns:
             DilemmaDB instance ready to save
         """
+        # Normalize datetime to naive UTC for PostgreSQL TIMESTAMP WITHOUT TIME ZONE
+        created_at = dilemma.created_at
+        if created_at.tzinfo is not None:
+            # Convert to UTC and remove timezone info
+            created_at = created_at.astimezone(timezone.utc).replace(tzinfo=None)
+
         return cls(
             id=dilemma.id,
             data=dilemma.model_dump_json(),
             title=dilemma.title,
             difficulty_intended=dilemma.difficulty_intended,
             created_by=dilemma.created_by,
-            created_at=dilemma.created_at,
+            created_at=created_at,
             tags_json=json.dumps(dilemma.tags),
             version=dilemma.version,
             parent_id=dilemma.parent_id,
@@ -182,6 +188,12 @@ class JudgementDB(SQLModel, table=True):
         Returns:
             JudgementDB instance ready to save
         """
+        # Normalize datetime to naive UTC for PostgreSQL TIMESTAMP WITHOUT TIME ZONE
+        created_at = judgement.created_at
+        if created_at.tzinfo is not None:
+            # Convert to UTC and remove timezone info
+            created_at = created_at.astimezone(timezone.utc).replace(tzinfo=None)
+
         return cls(
             id=judgement.id,
             data=judgement.model_dump_json(),
@@ -190,7 +202,7 @@ class JudgementDB(SQLModel, table=True):
             judge_id=judgement.get_judge_id(),
             mode=judgement.mode,
             choice_id=judgement.choice_id,
-            created_at=judgement.created_at,
+            created_at=created_at,
             variation_key=judgement.variation_key,
             experiment_id=judgement.experiment_id,
             repetition_number=judgement.repetition_number,

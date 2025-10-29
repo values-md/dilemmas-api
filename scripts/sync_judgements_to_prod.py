@@ -231,7 +231,9 @@ async def main():
         # Show sample judgements
         console.print("[bold]Sample judgements:[/bold]")
         for j in missing_judgements[:3]:
-            console.print(f"  • {j.judge_id} → choice: {j.choice_id}, confidence: {j.confidence:.1f}")
+            # Parse domain model to get confidence
+            judgement_obj = j.to_domain()
+            console.print(f"  • {j.judge_id} → choice: {j.choice_id}, confidence: {judgement_obj.confidence:.1f}")
         if len(missing_judgements) > 3:
             console.print(f"  ... and {len(missing_judgements) - 3} more")
         console.print()
@@ -254,7 +256,13 @@ async def main():
         console.print("\n[cyan]Syncing to production...[/cyan]")
         async with prod_session_maker() as prod_session:
             for i, judgement in enumerate(missing_judgements, 1):
-                prod_session.add(judgement)
+                # Convert to domain model to get all fields populated correctly
+                domain_judgement = judgement.to_domain()
+
+                # Use from_domain to create properly populated DB instance
+                prod_judgement = JudgementDB.from_domain(domain_judgement)
+
+                prod_session.add(prod_judgement)
 
                 if i % 50 == 0 or i == len(missing_judgements):
                     console.print(f"  Added {i}/{len(missing_judgements)}...")
