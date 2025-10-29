@@ -232,4 +232,37 @@ class JudgementDB(SQLModel, table=True):
         return Judgement.model_validate_json(self.data)
 
 
+class ValuesMdDB(SQLModel, table=True):
+    """Database model for caching generated VALUES.md files.
+
+    Stores the complete VALUES.md markdown along with metadata.
+    Cache persists forever until explicitly regenerated.
+    """
+
+    __tablename__ = "values_md"
+
+    # Primary key
+    participant_id: str = Field(primary_key=True, description="Participant identifier")
+
+    # VALUES.md content
+    markdown_text: str = Field(
+        sa_column=Column(Text, nullable=False),
+        description="Complete VALUES.md file as markdown text"
+    )
+
+    # Structured data (optional, for analysis)
+    structured_json: str = Field(
+        sa_column=Column(Text, nullable=False),
+        description="ValuesMarkdown model as JSON"
+    )
+
+    # Metadata
+    generated_at: datetime = Field(description="When VALUES.md was generated")
+    model_id: str = Field(description="LLM model used for generation")
+    judgement_count: int = Field(description="Number of judgements analyzed")
+
+    # Update tracking
+    version: int = Field(default=1, description="Version number (increments on regeneration)")
+
+
 # Future: Add ExperimentRun, ResultSet, etc. as needed

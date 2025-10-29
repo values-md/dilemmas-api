@@ -69,6 +69,47 @@ class StatsResponse(BaseModel):
     difficulty_distribution: dict[int, int]
 
 
+class HumanJudgementItem(BaseModel):
+    """Single human judgement submission."""
+
+    dilemma_id: str
+    choice_id: str
+    confidence: float | None = Field(None, ge=0.0, le=10.0, description="Confidence (0-10)")
+    reasoning: str = Field("", description="Optional explanation")
+    response_time_ms: int | None = Field(None, description="Time taken to decide")
+    rendered_situation: str = Field(..., description="Actual text shown to user")
+    variable_values: dict[str, str] | None = Field(None, description="Variable substitutions used")
+    modifier_indices: list[int] | None = Field(None, description="Which modifiers were applied")
+
+
+class HumanDemographics(BaseModel):
+    """Optional demographic information."""
+
+    age: int | None = Field(None, ge=1, le=120)
+    gender: str | None = None
+    education_level: str | None = None
+    country: str | None = None
+    culture: str | None = None
+    professional_background: str | None = None
+    device_type: str | None = None
+
+
+class SubmitJudgementsRequest(BaseModel):
+    """Request to submit a batch of human judgements."""
+
+    participant_id: str = Field(..., description="Anonymous participant UUID from frontend")
+    demographics: HumanDemographics | None = None
+    judgements: list[HumanJudgementItem]
+
+
+class SubmitJudgementsResponse(BaseModel):
+    """Response after submitting judgements."""
+
+    success: bool
+    judgement_ids: list[str]
+    message: str | None = None
+
+
 # ============================================================================
 # PUBLIC ROUTES - Dilemma Browser
 # ============================================================================
@@ -678,3 +719,287 @@ async def get_stats():
         models_tested=sorted(models_tested),
         difficulty_distribution=difficulty_distribution,
     )
+
+
+# ============================================================================
+# HUMAN TESTING API - Public endpoints for frontend integration
+# ============================================================================
+
+
+@app.get("/api/collections/{collection_name}/dilemmas", response_model=list[Dilemma])
+async def get_collection_dilemmas(collection_name: str):
+    """Get all dilemmas in a specific collection (public endpoint).
+
+    Use case: Frontend fetches bench-1 test set for human testing.
+
+    Args:
+        collection_name: Name of the collection (e.g., 'bench-1')
+
+    Returns:
+        List of dilemmas with all fields (choices, variables, modifiers, tools)
+    """
+    db = get_database()
+
+    async for session in db.get_session():
+        result = await session.execute(
+            select(DilemmaDB).where(DilemmaDB.collection == collection_name)
+        )
+        db_dilemmas = result.scalars().all()
+
+        if not db_dilemmas:
+            raise HTTPException(status_code=404, detail=f"Collection '{collection_name}' not found")
+
+        dilemmas = [d.to_domain() for d in db_dilemmas]
+
+    await db.close()
+    return dilemmas
+
+
+@app.post("/api/judgements", response_model=SubmitJudgementsResponse, dependencies=[Depends(verify_api_key)])
+async def submit_human_judgements(request: SubmitJudgementsRequest):
+    """Submit a batch of human judgements (public endpoint).
+
+    Use case: Frontend submits user's completed dilemma test.
+
+    Args:
+        request: Batch of judgements with participant info and demographics
+
+    Returns:
+        Success status and list of created judgement IDs
+    """
+    from dilemmas.models.judgement import Judgement, HumanJudgeDetails
+    import hashlib
+
+    db = get_database()
+    judgement_ids = []
+    errors = []
+
+    # Convert demographics to dict for HumanJudgeDetails
+    demographics_dict = request.demographics.model_dump() if request.demographics else {}
+
+    async for session in db.get_session():
+        for item in request.judgements:
+            try:
+                # Validate dilemma exists
+                result = await session.execute(
+                    select(DilemmaDB).where(DilemmaDB.id == item.dilemma_id)
+                )
+                dilemma_db = result.scalar_one_or_none()
+
+                if not dilemma_db:
+                    errors.append(f"Dilemma {item.dilemma_id} not found")
+                    continue
+
+                dilemma = dilemma_db.to_domain()
+
+                # Validate choice_id exists
+                valid_choice_ids = [c.id for c in dilemma.choices]
+                if item.choice_id not in valid_choice_ids:
+                    errors.append(f"Invalid choice_id '{item.choice_id}' for dilemma {item.dilemma_id}")
+                    continue
+
+                # Generate variation_key
+                variation_key = None
+                if item.variable_values:
+                    sorted_items = sorted(item.variable_values.items())
+                    key_str = "|".join(f"{k}={v}" for k, v in sorted_items)
+                    variation_key = hashlib.md5(key_str.encode()).hexdigest()[:16]
+
+                # Create HumanJudgeDetails
+                human_judge = HumanJudgeDetails(
+                    participant_id=request.participant_id,
+                    **demographics_dict
+                )
+
+                # Create Judgement
+                judgement = Judgement(
+                    dilemma_id=item.dilemma_id,
+                    judge_type="human",
+                    human_judge=human_judge,
+                    mode="theory",  # Humans always use theory mode
+                    rendered_situation=item.rendered_situation,
+                    variable_values=item.variable_values,
+                    modifier_indices=item.modifier_indices,
+                    variation_key=variation_key,
+                    choice_id=item.choice_id,
+                    confidence=item.confidence,
+                    reasoning=item.reasoning,
+                    response_time_ms=item.response_time_ms,
+                )
+
+                # Save to database
+                judgement_db = JudgementDB.from_domain(judgement)
+                session.add(judgement_db)
+                await session.commit()
+
+                judgement_ids.append(judgement.id)
+
+            except Exception as e:
+                errors.append(f"Error processing judgement for dilemma {item.dilemma_id}: {str(e)}")
+                continue
+
+    await db.close()
+
+    if errors:
+        return SubmitJudgementsResponse(
+            success=len(judgement_ids) > 0,
+            judgement_ids=judgement_ids,
+            message=f"Saved {len(judgement_ids)} judgements. Errors: {'; '.join(errors)}"
+        )
+
+    return SubmitJudgementsResponse(
+        success=True,
+        judgement_ids=judgement_ids,
+        message=f"Successfully saved {len(judgement_ids)} judgements"
+    )
+
+
+# ============================================================================
+# VALUES.md Generation Endpoints
+# ============================================================================
+
+class GenerateValuesRequest(BaseModel):
+    """Request to generate VALUES.md file."""
+    participant_id: str = Field(..., description="Participant identifier")
+    model_id: str = Field(
+        default="google/gemini-2.5-flash",
+        description="LLM model to use for generation"
+    )
+    force_regenerate: bool = Field(
+        default=False,
+        description="Force regeneration even if cached version exists"
+    )
+
+
+class GenerateValuesResponse(BaseModel):
+    """Response with generated VALUES.md."""
+    success: bool
+    participant_id: str
+    values_md: str | None = None
+    from_cache: bool = Field(default=False, description="Whether result is from cache")
+    judgement_count: int | None = None
+    generated_at: str | None = None
+    model_id: str | None = None
+    error: str | None = None
+
+
+@app.post("/api/values/generate", response_model=GenerateValuesResponse, dependencies=[Depends(verify_api_key)])
+async def generate_values_md(request: GenerateValuesRequest):
+    """Generate VALUES.md file from participant's judgements (protected endpoint).
+
+    Requires minimum 10 judgements. Results are cached permanently until force_regenerate=True.
+    """
+    from datetime import datetime, timezone
+    from dilemmas.models.db import ValuesMdDB
+    from dilemmas.services.values_generator import ValuesGenerator
+
+    db = get_database()
+
+    async for session in db.get_session():
+        # Check cache first (unless force_regenerate)
+        if not request.force_regenerate:
+            result = await session.get(ValuesMdDB, request.participant_id)
+            if result:
+                await db.close()
+                return GenerateValuesResponse(
+                    success=True,
+                    participant_id=request.participant_id,
+                    values_md=result.markdown_text,
+                    from_cache=True,
+                    judgement_count=result.judgement_count,
+                    generated_at=result.generated_at.isoformat(),
+                    model_id=result.model_id
+                )
+
+        # Generate new VALUES.md
+        try:
+            generator = ValuesGenerator()
+            markdown_text, structured_data = await generator.generate(
+                session=session,
+                participant_id=request.participant_id,
+                model_id=request.model_id
+            )
+
+            # Save to cache
+            now = datetime.now(timezone.utc).replace(tzinfo=None)
+
+            # Check if record exists (for version increment)
+            existing = await session.get(ValuesMdDB, request.participant_id)
+            version = existing.version + 1 if existing else 1
+
+            # Create or update cache record
+            cache_record = ValuesMdDB(
+                participant_id=request.participant_id,
+                markdown_text=markdown_text,
+                structured_json=structured_data.model_dump_json(),
+                generated_at=now,
+                model_id=request.model_id,
+                judgement_count=structured_data.generated_from_count,
+                version=version
+            )
+
+            # Merge (upsert)
+            await session.merge(cache_record)
+            await session.commit()
+
+            await db.close()
+
+            return GenerateValuesResponse(
+                success=True,
+                participant_id=request.participant_id,
+                values_md=markdown_text,
+                from_cache=False,
+                judgement_count=structured_data.generated_from_count,
+                generated_at=now.isoformat(),
+                model_id=request.model_id
+            )
+
+        except ValueError as e:
+            # Insufficient judgements
+            await db.close()
+            return GenerateValuesResponse(
+                success=False,
+                participant_id=request.participant_id,
+                error=str(e)
+            )
+        except Exception as e:
+            # Other errors
+            await db.close()
+            return GenerateValuesResponse(
+                success=False,
+                participant_id=request.participant_id,
+                error=f"Generation failed: {str(e)}"
+            )
+
+
+@app.get("/api/values/{participant_id}", dependencies=[Depends(verify_api_key)])
+async def get_values_md(participant_id: str):
+    """Retrieve cached VALUES.md file for a participant (protected endpoint).
+
+    Returns 404 if no VALUES.md has been generated for this participant.
+    """
+    from dilemmas.models.db import ValuesMdDB
+
+    db = get_database()
+
+    async for session in db.get_session():
+        result = await session.get(ValuesMdDB, participant_id)
+
+        if not result:
+            await db.close()
+            raise HTTPException(
+                status_code=404,
+                detail=f"No VALUES.md found for participant '{participant_id}'. Generate one first."
+            )
+
+        await db.close()
+
+        return GenerateValuesResponse(
+            success=True,
+            participant_id=participant_id,
+            values_md=result.markdown_text,
+            from_cache=True,
+            judgement_count=result.judgement_count,
+            generated_at=result.generated_at.isoformat(),
+            model_id=result.model_id
+        )
