@@ -4,6 +4,7 @@ This module configures Alembic to work with our SQLModel models and async databa
 """
 
 import asyncio
+import os
 import sys
 from logging.config import fileConfig
 from pathlib import Path
@@ -32,11 +33,13 @@ if config.config_file_name is not None:
 # This tells Alembic which models to track for autogenerate
 target_metadata = SQLModel.metadata
 
-# Configure database URL from our database module
+# Configure database URL from environment variable or our database module
 # This ensures we use the same database as the application
 from dilemmas.db.database import get_database
 
-db = get_database()
+# Read DATABASE_URL from environment (for production) or use default (for development)
+database_url_from_env = os.getenv("DATABASE_URL")
+db = get_database(database_url_from_env)
 database_url = str(db.engine.url)
 
 # For SQLite async, we need to convert aiosqlite to sqlite for offline mode
