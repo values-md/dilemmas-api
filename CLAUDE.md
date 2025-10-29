@@ -1,5 +1,16 @@
 # CLAUDE.md - Project Structure & Building Principles
 
+## ⚠️ CRITICAL RULES FOR CLAUDE
+
+**NEVER run batch generation scripts automatically:**
+- ❌ DO NOT run `generate_bench1.py` or any batch generation scripts without explicit user request
+- ❌ DO NOT start background processes for generation
+- ❌ DO NOT "helpfully" regenerate data
+- ✅ ONLY run generation when user explicitly asks
+- ✅ ALWAYS ask before running any batch operation
+
+**Why:** Generation is expensive, creates database records, and the user manages data carefully.
+
 ## Project Overview
 Research project to test how different LLMs make ethical decisions under various conditions. Foundation for the VALUES.md file format standard for AI agent ethics.
 

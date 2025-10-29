@@ -388,7 +388,7 @@ async def main():
         # Show plan
         print_plan()
 
-        # Skip confirmation when running in background
+        # Skip confirmation when running in background (comment out for interactive)
         # if not Confirm.ask("[yellow]Ready to generate bench-1 collection?[/yellow]", default=True):
         #     console.print("[yellow]Cancelled.[/yellow]")
         #     return 0

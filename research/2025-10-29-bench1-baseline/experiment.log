@@ -1,0 +1,24 @@
+
+bench-1 Baseline: Systematic LLM Behavior Mapping
+Experiment ID: b191388e-3994-4ebd-96cc-af0d033c5230
+
+✓ Loaded 20 dilemmas from bench-1
+
+Generating all variable combinations...
+✓ Generated 12,808 judgement configurations
+
+                        Experiment Configuration                         
+┏━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃ Parameter             ┃ Value                                         ┃
+┡━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┩
+│ Models                │ 4 (GPT-5, Claude 4.5, Gemini 2.5 Pro, Grok 4) │
+│ Dilemmas              │ 20 from bench-1                               │
+│ Variable combinations │ 1,601 (systematic)                            │
+│ Modes                 │ theory + action                               │
+│ Temperature           │ 1.0                                           │
+│ Total judgements      │ 12,808                                        │
+│ Estimated cost        │ ~$62                                          │
+│ Estimated time        │ ~14 hours (5 concurrent)                      │
+│ Concurrent requests   │ 5                                             │
+└───────────────────────┴───────────────────────────────────────────────┘
+

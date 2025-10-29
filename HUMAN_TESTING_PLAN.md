@@ -74,33 +74,42 @@ You'll build this separately. It needs:
 - Use case: Frontend fetches bench-1 test set
 
 **POST `/api/judgements`**
-- Public endpoint (no auth for now, or simple participant_id auth)
+- Public endpoint (no auth required)
 - Submit a batch of human judgements
 - Request body:
 ```json
 {
   "participant_id": "anon-uuid",
+  "demographics": {
+    "age": 32,
+    "gender": "non-binary",
+    "education_level": "masters",
+    "country": "US",
+    "culture": "Western",
+    "professional_background": "software_engineer",
+    "device_type": "desktop"
+  },
   "judgements": [
     {
       "dilemma_id": "abc123",
       "choice_id": "choice_1",
       "confidence": 8,
-      "reasoning": "optional text",
+      "reasoning": "I chose this because...",
       "response_time_ms": 45000,
-      "variable_values": {"DOCTOR_NAME": "Dr. Smith"},
-      "modifiers_used": []
+      "rendered_situation": "The actual text shown to user",
+      "variable_values": {"{DOCTOR_NAME}": "Dr. Smith"},
+      "modifier_indices": [0, 2]
     }
-  ],
-  "demographics": {
-    "age": 32,
-    "gender": "non-binary",
-    "education_level": "masters",
-    "country": "US"
-  }
+  ]
 }
 ```
 - Response: `{success: true, judgement_ids: string[]}`
-- Validation: Ensure dilemma_id exists, choice_id valid
+- Backend creates full `Judgement` objects:
+  - Sets `judge_type="human"`
+  - Sets `mode="theory"` (humans don't use action mode)
+  - Embeds demographics in `human_judge` field for each judgement
+  - Validates: dilemma_id exists, choice_id valid for that dilemma
+- All demographics fields are optional except `participant_id`
 
 **POST `/api/values/generate`**
 - Protected or participant-specific
@@ -205,10 +214,35 @@ When values conflict, you tend to prioritize: [order]
 
 ### 4. Database Schema (Already Ready!)
 
-No changes needed! Existing models support everything:
-- `HumanJudgeDetails` has all demographic fields
-- `variation_key` tracks which variables were used
-- `values_scores` can store computed values
+**No participant table needed on research backend!**
+
+The Next.js frontend will handle:
+- User accounts and authentication
+- User profiles and demographics management
+- Session/progress tracking
+- UI state and preferences
+
+This backend only stores research data:
+- **DilemmaDB** - stores dilemmas
+- **JudgementDB** - stores judgements with embedded demographics
+
+**Why embed demographics in each judgement?**
+- ✅ Self-contained research exports (each judgement has full context)
+- ✅ Temporal accuracy (demographics frozen at time of judgement)
+- ✅ Research integrity (can't lose data if user deletes frontend account)
+- ✅ No foreign keys → simpler queries and exports
+- ✅ Privacy-friendly (backend only knows anonymous participant_id)
+
+**Existing `HumanJudgeDetails` already has structured demographics:**
+- `participant_id`: str (anonymous ID from frontend)
+- `age`: int | None (1-120, validated)
+- `gender`: str | None
+- `education_level`: str | None
+- `country`: str | None
+- `culture`: str | None
+- `professional_background`: str | None
+- `values_scores`: dict[str, float] | None (moral foundations, etc.)
+- Plus experimental context: `recruitment_source`, `device_type`, `changed_mind`, etc.
 
 ### 5. Implementation Order
 
@@ -236,20 +270,42 @@ No changes needed! Existing models support everything:
 
 ## Technical Decisions
 
-### Authentication Strategy
+### Architecture: Two-App Separation
 
-**Option 1: Anonymous Participant IDs (Recommended for MVP)**
-- Frontend generates UUID on first visit
-- Stores in localStorage
-- No login required
-- Simple, privacy-friendly
-- Can link judgements but no PII
+**Frontend (Next.js App):**
+- User accounts, authentication, sessions
+- User profiles and demographics UI
+- Test-taking interface
+- Progress tracking and resume functionality
+- VALUES.md display
+- Sends participant_id + demographics snapshot with each judgement batch
 
-**Option 2: Full Auth (Future)**
-- Email/password or OAuth
-- Can save progress, return to test
-- Link to user profile
-- Required for research studies
+**Backend (This Python API):**
+- Research data only (dilemmas + judgements)
+- No user accounts, no auth, no sessions
+- Simple API key protection for admin endpoints
+- Anonymous participant_id for linking judgements
+- Demographics embedded in each judgement record
+
+**Benefits:**
+- ✅ Separation of concerns (app vs research data)
+- ✅ Frontend can change auth without affecting research
+- ✅ Research data remains self-contained and portable
+- ✅ Backend stays simple and focused
+- ✅ Can export/analyze data without frontend database
+
+### Participant ID Strategy
+
+**Frontend generates stable anonymous ID:**
+- On first visit: generate UUID, store in localStorage
+- Optional: upgrade to authenticated account (keeps same participant_id)
+- Sends participant_id with every judgement submission
+- Backend treats it as opaque identifier (no lookups, no validation)
+
+**Backend perspective:**
+- participant_id is just a string for grouping judgements
+- No participant table, no foreign keys
+- Can generate VALUES.md for any participant_id by querying judgements
 
 ### Variable Rendering Strategy
 
