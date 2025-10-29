@@ -188,21 +188,55 @@ uv run alembic downgrade -1
 
 **Production Deployment:**
 
-For production, you have two main options:
+We use **Fly.io + Neon Postgres** for production deployment.
 
-1. **Cloudflare D1** (serverless SQLite at the edge)
-   - Export migrations to SQL: `alembic upgrade head --sql > migration.sql`
-   - Apply to D1: `npx wrangler d1 execute DB_NAME --remote --file=migration.sql`
-   - Use D1 bindings in Cloudflare Workers for queries
-   - Same schema, different connection method
+**Key Architecture Decisions:**
+- **Fly.io**: Docker container hosting with automatic SSL and global edge network
+- **Neon Postgres**: Serverless Postgres with generous free tier, auto-scaling
+- **Automatic Migrations**: `entrypoint.sh` runs `alembic upgrade head` on every deploy
 
-2. **Neon/Supabase** (serverless Postgres)
-   - Just change `DATABASE_URL` to Postgres connection string
-   - Run `alembic upgrade head` directly - works identically!
-   - No migration export needed
-   - Easier migration path from SQLite
+**Critical Implementation Details:**
 
-Both options work with the same Alembic migrations we use locally. See production deployment guide when ready to deploy.
+1. **Database URL Handling** (`src/dilemmas/db/database.py`):
+   - Automatically reads `DATABASE_URL` from environment
+   - Cleans Neon connection strings for asyncpg compatibility:
+     - Converts `postgresql://` → `postgresql+asyncpg://`
+     - Converts `sslmode=require` → `ssl=require`
+     - Removes `channel_binding` parameter
+   - Works for both local SQLite (when `DATABASE_URL` not set) and production Postgres
+
+2. **Alembic Environment** (`alembic/env.py`):
+   - Reads `DATABASE_URL` from environment (not hardcoded)
+   - Applies same URL cleaning for migrations
+   - Ensures migrations run against Postgres in production, SQLite locally
+
+3. **DateTime Normalization** (`src/dilemmas/models/db.py`):
+   - `DilemmaDB.from_domain()` and `JudgementDB.from_domain()` normalize datetimes
+   - Converts timezone-aware → naive UTC for Postgres `TIMESTAMP WITHOUT TIME ZONE`
+   - Prevents "can't subtract offset-naive and offset-aware datetimes" errors
+
+4. **Data Sync** (`scripts/sync_*_to_prod.py`):
+   - Sync local SQLite data → production Postgres
+   - Uses `.to_domain()` → `.from_domain()` pattern to populate all indexed fields
+   - Supports collection filtering and dry-run mode
+
+**Deployment Workflow:**
+```bash
+# Set secrets (first time only)
+fly secrets set DATABASE_URL="postgresql://..."
+fly secrets set OPENROUTER_API_KEY="..."
+fly secrets set API_KEY="..."
+
+# Deploy (migrations run automatically)
+fly deploy
+
+# Sync existing data from local
+uv run python scripts/sync_dilemmas_to_prod.py --dry-run
+uv run python scripts/sync_dilemmas_to_prod.py
+uv run python scripts/sync_judgements_to_prod.py
+```
+
+See [DEPLOYMENT.md](DEPLOYMENT.md) for complete deployment guide with troubleshooting.
 
 ### 7. FastAPI Web Interface
 

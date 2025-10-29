@@ -278,33 +278,20 @@ The project includes a sophisticated experiment framework. All experiments live 
 
 ## Deployment
 
-The research site is deployed to Fly.io at **research.values.md**.
+The research site is deployed to **Fly.io + Neon Postgres** at **research.values.md**.
 
-**Deploy manually:**
+**Quick Deploy:**
 ```bash
-# First time: Install flyctl and authenticate
-brew install flyctl
-fly auth login
+# Set secrets (first time only)
+fly secrets set DATABASE_URL="postgresql://..."
+fly secrets set OPENROUTER_API_KEY="..."
+fly secrets set API_KEY="..."
 
-# Deploy
+# Deploy (migrations run automatically)
 fly deploy
 
 # View logs
 fly logs
-
-# SSH into instance
-fly ssh console
-```
-
-**Configuration:**
-- `fly.toml` - Fly.io app configuration
-- `Dockerfile` - Container build
-- `entrypoint.sh` - Startup script
-- Environment variables set via `fly secrets set`
-
-**Domain setup:**
-```bash
-fly certs add research.values.md
 ```
 
 **Sync local data to production:**
@@ -322,6 +309,12 @@ uv run python scripts/sync_judgements_to_prod.py --only-with-dilemmas
 ```
 
 Requires `PROD_DATABASE_URL` in `.env` (Neon/Postgres connection string).
+
+**📚 Complete Guide:** See [DEPLOYMENT.md](DEPLOYMENT.md) for:
+- Step-by-step setup instructions
+- Database configuration (Neon Postgres)
+- Troubleshooting common issues
+- Monitoring and maintenance
 
 ## Development
 

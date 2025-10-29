@@ -226,6 +226,47 @@ flyctl apps restart values-md-dilemmas
 
 ## Troubleshooting
 
+### Migrations Show SQLiteImpl Instead of PostgresqlImpl
+
+**Problem**: Migrations run but use SQLite instead of Postgres.
+
+**Cause**: `DATABASE_URL` environment variable not being read by `alembic/env.py`.
+
+**Solution**: Already fixed in codebase - `alembic/env.py` reads `DATABASE_URL` and cleans it for asyncpg.
+
+### Database Connection Errors (sslmode, channel_binding)
+
+**Problem**: Errors like `TypeError: connect() got an unexpected keyword argument 'sslmode'`
+
+**Cause**: Neon uses connection string parameters that asyncpg doesn't understand.
+
+**Solution**: Already fixed - `src/dilemmas/db/database.py` automatically cleans Neon URLs:
+- Converts `postgresql://` → `postgresql+asyncpg://`
+- Converts `sslmode=require` → `ssl=require`
+- Removes `channel_binding` parameter
+
+### App Uses SQLite in Production Instead of Postgres
+
+**Problem**: FastAPI app queries SQLite even though DATABASE_URL is set.
+
+**Cause**: `get_database()` wasn't reading environment variables.
+
+**Solution**: Already fixed - `get_database()` now reads `DATABASE_URL` from environment automatically.
+
+### Sync Scripts Fail: "null value violates not-null constraint"
+
+**Problem**: Syncing local data fails with NULL violations on title, difficulty_intended, etc.
+
+**Cause**: Old local DB rows have these fields as NULL, but Postgres requires them.
+
+**Solution**: Sync scripts now use `.to_domain()` → `.from_domain()` to populate all fields from JSON.
+
+### Sync Scripts Fail: "can't subtract offset-naive and offset-aware datetimes"
+
+**Problem**: DateTime timezone mismatch between SQLite (naive) and Postgres.
+
+**Solution**: Already fixed - `DilemmaDB.from_domain()` and `JudgementDB.from_domain()` normalize datetimes to naive UTC.
+
 ### Migrations Fail on Deploy
 
 ```bash
