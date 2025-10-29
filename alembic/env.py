@@ -39,6 +39,11 @@ from dilemmas.db.database import get_database
 
 # Read DATABASE_URL from environment (for production) or use default (for development)
 database_url_from_env = os.getenv("DATABASE_URL")
+
+# Convert postgresql:// to postgresql+asyncpg:// for async support
+if database_url_from_env and database_url_from_env.startswith("postgresql://"):
+    database_url_from_env = database_url_from_env.replace("postgresql://", "postgresql+asyncpg://", 1)
+
 db = get_database(database_url_from_env)
 database_url = str(db.engine.url)
 
