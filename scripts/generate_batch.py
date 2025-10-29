@@ -4,10 +4,12 @@
 Usage:
     uv run python scripts/generate_batch.py 30
     uv run python scripts/generate_batch.py 50 --difficulty-min 4 --difficulty-max 8
+    uv run python scripts/generate_batch.py 20 --collection "standard_v1"
 """
 
 import asyncio
 import sys
+import uuid
 from pathlib import Path
 
 # Add src to path
@@ -49,6 +51,12 @@ async def main():
         choices=["v1_basic", "v2_structured", "v3_creative", "v4_adversarial", "v5_consequentialist", "v6_relational", "v7_systemic"],
         help="Prompt version to use",
     )
+    parser.add_argument(
+        "--collection",
+        type=str,
+        default=None,
+        help="Collection name to assign to generated dilemmas (e.g., 'standard_v1', 'pilot_study')",
+    )
 
     args = parser.parse_args()
 
@@ -56,10 +64,16 @@ async def main():
         print("Error: difficulty-min must be <= difficulty-max")
         return 1
 
+    # Generate batch ID
+    batch_id = str(uuid.uuid4())
+
     print(f"🎲 Generating {args.count} dilemmas...")
     print(f"   Difficulty range: {args.difficulty_min}-{args.difficulty_max}")
     print(f"   Prompt version: {args.prompt_version}")
-    print(f"   Ensuring diversity: Yes\n")
+    print(f"   Ensuring diversity: Yes")
+    if args.collection:
+        print(f"   Collection: {args.collection}")
+    print(f"   Batch ID: {batch_id}\n")
 
     # Create generator
     generator = DilemmaGenerator(prompt_version=args.prompt_version)
@@ -72,6 +86,11 @@ async def main():
         difficulty_range=(args.difficulty_min, args.difficulty_max),
         ensure_diversity=True,
     )
+
+    # Apply collection and batch_id to all dilemmas
+    for dilemma in dilemmas:
+        dilemma.collection = args.collection
+        dilemma.batch_id = batch_id
 
     print(f"✓ Generated {len(dilemmas)} dilemmas\n")
 

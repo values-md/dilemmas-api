@@ -3,7 +3,7 @@
 {% block title %}{{ dilemma.title }} - VALUES.md{% endblock %}
 
 {% block content %}
-<a href="/" class="back-link">← Back to all dilemmas</a>
+<a href="/dilemmas" class="back-link">← Back to all dilemmas</a>
 
 <div class="card">
     <h1>{{ dilemma.title }}</h1>
@@ -113,6 +113,16 @@
         <div style="margin-bottom: 8px;">
             <strong>ID:</strong> <code>{{ dilemma.id }}</code>
         </div>
+        {% if dilemma.collection %}
+        <div style="margin-bottom: 8px;">
+            <strong>Collection:</strong> <span class="badge" style="background: #f3e5f5; color: #6a1b9a;">{{ dilemma.collection }}</span>
+        </div>
+        {% endif %}
+        {% if dilemma.batch_id %}
+        <div style="margin-bottom: 8px;">
+            <strong>Batch ID:</strong> <code style="font-size: 0.85em;">{{ dilemma.batch_id }}</code>
+        </div>
+        {% endif %}
         {% if dilemma.institution_type %}
         <div style="margin-bottom: 8px;">
             <strong>Institution Type:</strong> {{ dilemma.institution_type }} <span style="color: #666; font-size: 0.9em;">(for VALUES.md framing)</span>
@@ -147,6 +157,6 @@
 </div>
 
 <div style="text-align: center; margin: 40px 0; color: #999;">
-    <a href="/">← Back to all dilemmas</a>
+    <a href="/dilemmas">← Back to all dilemmas</a>
 </div>
 {% endblock %}

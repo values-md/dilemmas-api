@@ -3,10 +3,57 @@
 {% block title %}All Dilemmas - VALUES.md{% endblock %}
 
 {% block content %}
+
+<!-- Search Form -->
+<form method="get" action="/dilemmas" style="background: #f5f5f3; padding: 20px; margin-bottom: 30px; border: 1px solid #e8e8e4;">
+    <div style="margin-bottom: 15px;">
+        <label for="search" style="display: block; font-family: 'Inter', sans-serif; font-weight: 600; margin-bottom: 5px;">Search:</label>
+        <input type="text" id="search" name="search" value="{{ search }}" placeholder="Search in titles and situations..." style="width: 100%; padding: 8px; font-size: 1em; border: 1px solid #d4d4d0; border-radius: 2px;">
+    </div>
+
+    <div style="margin-bottom: 15px;">
+        <label for="collection" style="display: block; font-family: 'Inter', sans-serif; font-weight: 600; margin-bottom: 5px;">Collection:</label>
+        <select id="collection" name="collection" style="width: 100%; padding: 8px; font-size: 1em; border: 1px solid #d4d4d0; border-radius: 2px;">
+            <option value="">All Collections</option>
+            {% for coll in available_collections %}
+            <option value="{{ coll }}" {% if collection == coll %}selected{% endif %}>{{ coll }}</option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <button type="submit" style="padding: 10px 20px; background: #2c5282; color: white; border: none; border-radius: 2px; font-family: 'Inter', sans-serif; font-weight: 600; cursor: pointer;">Search</button>
+    {% if search or collection or difficulty or institution_type or domain or tag %}
+    <a href="/dilemmas" style="margin-left: 10px; padding: 10px 20px; background: #e8e8e4; color: #2a2a2a; text-decoration: none; border-radius: 2px; font-family: 'Inter', sans-serif; font-weight: 600; display: inline-block;">Clear All Filters</a>
+    {% endif %}
+</form>
+
+<!-- Active Filters Display -->
+{% if difficulty or institution_type or domain or tag %}
+<div style="background: #e8f4f8; padding: 15px; margin-bottom: 20px; border-left: 3px solid #2c5282;">
+    <strong style="font-family: 'Inter', sans-serif;">Active Filters:</strong>
+    {% if difficulty %}
+    <span class="badge" style="background: #2c5282; color: white; margin-left: 10px;">Difficulty: {{ difficulty }}</span>
+    {% endif %}
+    {% if institution_type %}
+    <span class="badge" style="background: #2c5282; color: white; margin-left: 10px;">Institution: {{ institution_type }}</span>
+    {% endif %}
+    {% if domain %}
+    <span class="badge" style="background: #2c5282; color: white; margin-left: 10px;">Domain: {{ domain }}</span>
+    {% endif %}
+    {% if tag %}
+    <span class="badge" style="background: #2c5282; color: white; margin-left: 10px;">Tag: {{ tag }}</span>
+    {% endif %}
+</div>
+{% endif %}
+
 <div class="stats">
     <div class="stat-card">
         <div class="stat-value">{{ count }}</div>
         <div class="stat-label">Total Dilemmas</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value">{{ page }}</div>
+        <div class="stat-label">Page {{ page }} of {{ total_pages }}</div>
     </div>
 </div>
 
@@ -18,18 +65,23 @@
         </h2>
 
         <div style="margin: 15px 0;">
-            <span class="badge badge-difficulty">
+            <a href="/dilemmas?difficulty={{ dilemma.difficulty_intended }}" class="badge badge-difficulty" style="text-decoration: none; cursor: pointer;" title="Filter by difficulty {{ dilemma.difficulty_intended }}">
                 Difficulty {{ dilemma.difficulty_intended }}/10
-            </span>
+            </a>
+            {% if dilemma.collection %}
+            <a href="/dilemmas?collection={{ dilemma.collection }}" class="badge" style="background: #f3e5f5; color: #6a1b9a; text-decoration: none; cursor: pointer;" title="Filter by collection">
+                📚 {{ dilemma.collection }}
+            </a>
+            {% endif %}
             {% if dilemma.institution_type %}
-            <span class="badge" style="background: #e8f5e9; color: #2e7d32;">
+            <a href="/dilemmas?institution_type={{ dilemma.institution_type }}" class="badge" style="background: #e8f5e9; color: #2e7d32; text-decoration: none; cursor: pointer;" title="Filter by institution type">
                 🏛️ {{ dilemma.institution_type.title() }}
-            </span>
+            </a>
             {% endif %}
             {% if dilemma.seed_components and dilemma.seed_components.domain %}
-            <span class="badge badge-domain">
+            <a href="/dilemmas?domain={{ dilemma.seed_components.domain }}" class="badge badge-domain" style="text-decoration: none; cursor: pointer;" title="Filter by domain">
                 {{ dilemma.seed_components.domain.replace('_', ' ').title() }}
-            </span>
+            </a>
             {% endif %}
             <span class="badge" style="background: #fff3e0; color: #e65100;">
                 {{ dilemma.choices|length }} choices
@@ -39,7 +91,7 @@
         {% if dilemma.tags %}
         <div style="margin: 10px 0;">
             {% for tag in dilemma.tags[:5] %}
-            <span class="badge badge-tag">{{ tag }}</span>
+            <a href="/dilemmas?tag={{ tag }}" class="badge badge-tag" style="text-decoration: none; cursor: pointer;" title="Filter by tag">{{ tag }}</a>
             {% endfor %}
             {% if dilemma.tags|length > 5 %}
             <span class="badge badge-tag">+{{ dilemma.tags|length - 5 }} more</span>
@@ -56,10 +108,39 @@
         </div>
     </div>
     {% endfor %}
+
+    <!-- Pagination -->
+    {% if total_pages > 1 %}
+    {% set query_params = [] %}
+    {% if search %}{% set _ = query_params.append('search=' + search) %}{% endif %}
+    {% if collection %}{% set _ = query_params.append('collection=' + collection) %}{% endif %}
+    {% if difficulty %}{% set _ = query_params.append('difficulty=' + difficulty|string) %}{% endif %}
+    {% if institution_type %}{% set _ = query_params.append('institution_type=' + institution_type) %}{% endif %}
+    {% if domain %}{% set _ = query_params.append('domain=' + domain) %}{% endif %}
+    {% if tag %}{% set _ = query_params.append('tag=' + tag) %}{% endif %}
+    {% set query_string = '&' + query_params|join('&') if query_params else '' %}
+
+    <div style="text-align: center; margin: 40px 0; font-family: 'Inter', sans-serif;">
+        {% if has_prev %}
+        <a href="/dilemmas?page={{ page - 1 }}{{ query_string }}" style="padding: 10px 20px; background: #f5f5f3; color: #2a2a2a; text-decoration: none; border: 1px solid #d4d4d0; border-radius: 2px; margin: 0 5px;">← Previous</a>
+        {% endif %}
+
+        <span style="margin: 0 15px; color: #6a6a6a;">Page {{ page }} of {{ total_pages }}</span>
+
+        {% if has_next %}
+        <a href="/dilemmas?page={{ page + 1 }}{{ query_string }}" style="padding: 10px 20px; background: #f5f5f3; color: #2a2a2a; text-decoration: none; border: 1px solid #d4d4d0; border-radius: 2px; margin: 0 5px;">Next →</a>
+        {% endif %}
+    </div>
+    {% endif %}
+
 {% else %}
     <div class="empty-state">
-        <h2>No dilemmas yet</h2>
+        <h2>No dilemmas found</h2>
+        {% if search or collection or difficulty or institution_type or domain or tag %}
+        <p>Try adjusting your search criteria or <a href="/dilemmas">view all dilemmas</a>.</p>
+        {% else %}
         <p>Run <code>uv run python scripts/generate_batch.py 10</code> to generate some dilemmas.</p>
+        {% endif %}
     </div>
 {% endif %}
 {% endblock %}

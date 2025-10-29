@@ -266,6 +266,19 @@ class Dilemma(BaseModel):
     )
     notes: str | None = Field(None, description="Any additional notes or context")
 
+    # ===== COLLECTION & BATCH =====
+    collection: str | None = Field(
+        None,
+        description=(
+            "Collection/battery this dilemma belongs to for standardized testing "
+            "(e.g., 'standard_v1', 'initial_experiments', 'bias_test_set')"
+        ),
+    )
+    batch_id: str | None = Field(
+        None,
+        description="Batch generation run ID if generated in a batch (UUID)",
+    )
+
     # ===== GENERATION METADATA =====
     is_llm_generated: bool = Field(
         default=False,

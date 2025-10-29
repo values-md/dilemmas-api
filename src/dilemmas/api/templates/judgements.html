@@ -3,17 +3,61 @@
 {% block title %}Judgements - VALUES.md{% endblock %}
 
 {% block content %}
+
+<!-- Search Form -->
+<form method="get" action="/judgements" style="background: #f5f5f3; padding: 20px; margin-bottom: 30px; border: 1px solid #e8e8e4;">
+    <div style="margin-bottom: 15px;">
+        <label for="search" style="display: block; font-family: 'Inter', sans-serif; font-weight: 600; margin-bottom: 5px;">Search:</label>
+        <input type="text" id="search" name="search" value="{{ search }}" placeholder="Search in reasoning and choices..." style="width: 100%; padding: 8px; font-size: 1em; border: 1px solid #d4d4d0; border-radius: 2px;">
+    </div>
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+        <div>
+            <label for="experiment_id" style="display: block; font-family: 'Inter', sans-serif; font-weight: 600; margin-bottom: 5px;">Experiment ID:</label>
+            <select id="experiment_id" name="experiment_id" style="width: 100%; padding: 8px; font-size: 1em; border: 1px solid #d4d4d0; border-radius: 2px;">
+                <option value="">All Experiments</option>
+                {% for exp_id in available_experiments %}
+                <option value="{{ exp_id }}" {% if experiment_id == exp_id %}selected{% endif %}>{{ exp_id[:16] }}...</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div>
+            <label for="model" style="display: block; font-family: 'Inter', sans-serif; font-weight: 600; margin-bottom: 5px;">Model:</label>
+            <select id="model" name="model" style="width: 100%; padding: 8px; font-size: 1em; border: 1px solid #d4d4d0; border-radius: 2px;">
+                <option value="">All Models</option>
+                {% for m in available_models %}
+                <option value="{{ m }}" {% if model == m %}selected{% endif %}>{{ m }}</option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
+
+    <button type="submit" style="padding: 10px 20px; background: #2c5282; color: white; border: none; border-radius: 2px; font-family: 'Inter', sans-serif; font-weight: 600; cursor: pointer;">Search</button>
+    {% if search or experiment_id or model %}
+    <a href="/judgements" style="margin-left: 10px; padding: 10px 20px; background: #e8e8e4; color: #2a2a2a; text-decoration: none; border-radius: 2px; font-family: 'Inter', sans-serif; font-weight: 600; display: inline-block;">Clear</a>
+    {% endif %}
+</form>
+
 <div class="stats">
     <div class="stat-card">
         <div class="stat-value">{{ count }}</div>
         <div class="stat-label">Total Judgements</div>
     </div>
+    <div class="stat-card">
+        <div class="stat-value">{{ page }}</div>
+        <div class="stat-label">Page {{ page }} of {{ total_pages }}</div>
+    </div>
 </div>
 
 {% if count == 0 %}
 <div class="empty-state">
-    <h2>No judgements yet</h2>
+    <h2>No judgements found</h2>
+    {% if search or experiment_id or model %}
+    <p>Try adjusting your search criteria or <a href="/judgements">view all judgements</a>.</p>
+    {% else %}
     <p>Run: <code>uv run python scripts/test_judge.py</code> to generate some judgements.</p>
+    {% endif %}
 </div>
 {% else %}
 
@@ -44,7 +88,7 @@
         <span class="badge" style="background: #e2e3e5; color: #383d41;">
             {{ judgement.mode }} mode
         </span>
-        {% if judgement.judge_type == "ai" and judgement.ai_judge and judgement.ai_judge.system_prompt_type %}
+        {% if judgement.judge_type == "ai" and judgement.ai_judge and judgement.ai_judge.system_prompt_type and judgement.ai_judge.system_prompt_type != "none" %}
         <span class="badge" style="background: #f8d7da; color: #721c24;">
             📝 {{ judgement.ai_judge.system_prompt_type }}
         </span>
@@ -67,6 +111,21 @@
     </div>
 </div>
 {% endfor %}
+
+<!-- Pagination -->
+{% if total_pages > 1 %}
+<div style="text-align: center; margin: 40px 0; font-family: 'Inter', sans-serif;">
+    {% if has_prev %}
+    <a href="/judgements?page={{ page - 1 }}{% if search %}&search={{ search }}{% endif %}{% if experiment_id %}&experiment_id={{ experiment_id }}{% endif %}{% if model %}&model={{ model }}{% endif %}" style="padding: 10px 20px; background: #f5f5f3; color: #2a2a2a; text-decoration: none; border: 1px solid #d4d4d0; border-radius: 2px; margin: 0 5px;">← Previous</a>
+    {% endif %}
+
+    <span style="margin: 0 15px; color: #6a6a6a;">Page {{ page }} of {{ total_pages }}</span>
+
+    {% if has_next %}
+    <a href="/judgements?page={{ page + 1 }}{% if search %}&search={{ search }}{% endif %}{% if experiment_id %}&experiment_id={{ experiment_id }}{% endif %}{% if model %}&model={{ model }}{% endif %}" style="padding: 10px 20px; background: #f5f5f3; color: #2a2a2a; text-decoration: none; border: 1px solid #d4d4d0; border-radius: 2px; margin: 0 5px;">Next →</a>
+    {% endif %}
+</div>
+{% endif %}
 
 {% endif %}
 {% endblock %}

@@ -10,6 +10,7 @@ from fastapi.responses import HTMLResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel, Field
+from sqlalchemy import func
 from sqlmodel import or_, select
 
 from dilemmas.api.auth import verify_api_key
@@ -73,27 +74,104 @@ class StatsResponse(BaseModel):
 # ============================================================================
 
 
-@app.get("/", response_class=HTMLResponse)
-async def index(request: Request):
-    """List all dilemmas."""
+@app.get("/")
+async def root():
+    """Redirect root to research page."""
+    from fastapi.responses import RedirectResponse
+    return RedirectResponse(url="/research")
+
+
+@app.get("/dilemmas", response_class=HTMLResponse)
+async def list_dilemmas(
+    request: Request,
+    page: int = Query(1, ge=1, description="Page number"),
+    limit: int = Query(50, ge=1, le=200, description="Items per page"),
+    search: str | None = Query(None, description="Search in title and situation"),
+    collection: str | None = Query(None, description="Filter by collection"),
+    difficulty: int | None = Query(None, ge=1, le=10, description="Filter by difficulty"),
+    institution_type: str | None = Query(None, description="Filter by institution type"),
+    domain: str | None = Query(None, description="Filter by domain"),
+    tag: str | None = Query(None, description="Filter by tag"),
+):
+    """List all dilemmas with pagination and search."""
     db = get_database()
 
     async for session in db.get_session():
-        statement = select(DilemmaDB).order_by(DilemmaDB.created_at.desc())
+        # Build query
+        statement = select(DilemmaDB)
+
+        # Apply filters
+        if search:
+            statement = statement.where(
+                or_(
+                    DilemmaDB.title.contains(search),
+                    DilemmaDB.data.contains(search),
+                )
+            )
+        if collection:
+            statement = statement.where(DilemmaDB.collection == collection)
+        if difficulty:
+            statement = statement.where(DilemmaDB.difficulty_intended == difficulty)
+        if institution_type:
+            statement = statement.where(
+                func.json_extract(DilemmaDB.data, '$.institution_type') == institution_type
+            )
+        if domain:
+            statement = statement.where(
+                func.json_extract(DilemmaDB.data, '$.seed_components.domain') == domain
+            )
+        if tag:
+            statement = statement.where(DilemmaDB.tags_json.contains(f'"{tag}"'))
+
+        # Count total (before pagination)
+        count_result = await session.execute(statement)
+        total = len(count_result.scalars().all())
+
+        # Apply pagination
+        offset = (page - 1) * limit
+        statement = statement.order_by(DilemmaDB.created_at.desc()).offset(offset).limit(limit)
+
         result = await session.execute(statement)
         dilemmas_db = result.scalars().all()
 
         # Convert to domain models
         dilemmas = [db_dilemma.to_domain() for db_dilemma in dilemmas_db]
 
+        # Get available collections for filter dropdown
+        collections_statement = (
+            select(DilemmaDB.collection)
+            .where(DilemmaDB.collection.is_not(None))
+            .distinct()
+            .order_by(DilemmaDB.collection)
+        )
+        collections_result = await session.execute(collections_statement)
+        available_collections = [c for c in collections_result.scalars().all() if c]
+
     await db.close()
+
+    # Calculate pagination info
+    total_pages = (total + limit - 1) // limit  # Ceiling division
+    has_prev = page > 1
+    has_next = page < total_pages
 
     return templates.TemplateResponse(
         "index.html",
         {
             "request": request,
             "dilemmas": dilemmas,
-            "count": len(dilemmas),
+            "count": total,
+            "page": page,
+            "limit": limit,
+            "total_pages": total_pages,
+            "has_prev": has_prev,
+            "has_next": has_next,
+            "search": search or "",
+            "collection": collection or "",
+            "difficulty": difficulty,
+            "institution_type": institution_type or "",
+            "domain": domain or "",
+            "tag": tag or "",
+            "available_collections": available_collections,
         },
     )
 
@@ -159,13 +237,41 @@ async def get_dilemma_api(dilemma_id: str):
 
 
 @app.get("/judgements", response_class=HTMLResponse)
-async def list_judgements(request: Request):
-    """List all judgements."""
+async def list_judgements(
+    request: Request,
+    page: int = Query(1, ge=1, description="Page number"),
+    limit: int = Query(50, ge=1, le=200, description="Items per page"),
+    search: str | None = Query(None, description="Search in reasoning and choice"),
+    experiment_id: str | None = Query(None, description="Filter by experiment ID"),
+    model: str | None = Query(None, description="Filter by model"),
+):
+    """List all judgements with pagination and search."""
     db = get_database()
 
     async for session in db.get_session():
-        # Get all judgements
-        statement = select(JudgementDB).order_by(JudgementDB.created_at.desc())
+        # Build query
+        statement = select(JudgementDB)
+
+        # Apply filters
+        if search:
+            statement = statement.where(
+                or_(
+                    JudgementDB.data.contains(search),
+                )
+            )
+        if experiment_id:
+            statement = statement.where(JudgementDB.experiment_id == experiment_id)
+        if model:
+            statement = statement.where(JudgementDB.judge_id == model)
+
+        # Count total (before pagination)
+        count_result = await session.execute(statement)
+        total = len(count_result.scalars().all())
+
+        # Apply pagination
+        offset = (page - 1) * limit
+        statement = statement.order_by(JudgementDB.created_at.desc()).offset(offset).limit(limit)
+
         result = await session.execute(statement)
         judgements_db = result.scalars().all()
 
@@ -174,11 +280,39 @@ async def list_judgements(request: Request):
 
         # Also load dilemmas to show titles
         dilemma_ids = [j.dilemma_id for j in judgements]
-        dilemma_statement = select(DilemmaDB).where(DilemmaDB.id.in_(dilemma_ids))
-        dilemma_result = await session.execute(dilemma_statement)
-        dilemmas_db = {d.id: d.to_domain() for d in dilemma_result.scalars().all()}
+        if dilemma_ids:
+            dilemma_statement = select(DilemmaDB).where(DilemmaDB.id.in_(dilemma_ids))
+            dilemma_result = await session.execute(dilemma_statement)
+            dilemmas_db = {d.id: d.to_domain() for d in dilemma_result.scalars().all()}
+        else:
+            dilemmas_db = {}
+
+        # Get available experiment IDs and models for filters
+        experiments_statement = (
+            select(JudgementDB.experiment_id)
+            .where(JudgementDB.experiment_id.is_not(None))
+            .distinct()
+            .order_by(JudgementDB.experiment_id.desc())
+            .limit(20)
+        )
+        experiments_result = await session.execute(experiments_statement)
+        available_experiments = [e for e in experiments_result.scalars().all() if e]
+
+        models_statement = (
+            select(JudgementDB.judge_id)
+            .where(JudgementDB.judge_type == "ai")
+            .distinct()
+            .order_by(JudgementDB.judge_id)
+        )
+        models_result = await session.execute(models_statement)
+        available_models = [m for m in models_result.scalars().all() if m]
 
     await db.close()
+
+    # Calculate pagination info
+    total_pages = (total + limit - 1) // limit  # Ceiling division
+    has_prev = page > 1
+    has_next = page < total_pages
 
     return templates.TemplateResponse(
         "judgements.html",
@@ -186,7 +320,17 @@ async def list_judgements(request: Request):
             "request": request,
             "judgements": judgements,
             "dilemmas": dilemmas_db,
-            "count": len(judgements),
+            "count": total,
+            "page": page,
+            "limit": limit,
+            "total_pages": total_pages,
+            "has_prev": has_prev,
+            "has_next": has_next,
+            "search": search or "",
+            "experiment_id": experiment_id or "",
+            "model": model or "",
+            "available_experiments": available_experiments,
+            "available_models": available_models,
         },
     )
 
@@ -411,6 +555,8 @@ async def list_dilemmas_protected(
     difficulty_max: int | None = Query(None, ge=1, le=10, description="Maximum difficulty"),
     tags: str | None = Query(None, description="Comma-separated tags to filter by"),
     created_by: str | None = Query(None, description="Filter by creator"),
+    collection: str | None = Query(None, description="Filter by collection name"),
+    batch_id: str | None = Query(None, description="Filter by batch ID"),
     search: str | None = Query(None, description="Search in title and situation"),
     sort: str = Query("created_at", description="Sort field"),
     order: str = Query("desc", description="Sort order (asc or desc)"),
@@ -436,6 +582,10 @@ async def list_dilemmas_protected(
             statement = statement.where(DilemmaDB.difficulty_intended <= difficulty_max)
         if created_by is not None:
             statement = statement.where(DilemmaDB.created_by == created_by)
+        if collection is not None:
+            statement = statement.where(DilemmaDB.collection == collection)
+        if batch_id is not None:
+            statement = statement.where(DilemmaDB.batch_id == batch_id)
 
         # Tag filtering (JSON contains)
         if tags:

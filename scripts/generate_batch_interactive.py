@@ -14,6 +14,7 @@ Usage:
 import asyncio
 import random
 import sys
+import uuid
 from pathlib import Path
 
 # Add src to path
@@ -24,6 +25,7 @@ from rich.panel import Panel
 from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TaskProgressColumn
 from rich.prompt import IntPrompt, Prompt
 from rich.table import Table
+from sqlmodel import select, func
 
 from dilemmas.db.database import get_database
 from dilemmas.models.config import get_config
@@ -88,6 +90,80 @@ def select_options(options: list[str], option_type: str) -> list[str]:
         return options
 
 
+async def get_existing_collections() -> list[tuple[str, int]]:
+    """Get list of existing collections from database.
+
+    Returns:
+        List of (collection_name, count) tuples
+    """
+    db = get_database()
+    collections = []
+
+    async for session in db.get_session():
+        # Get collections with counts
+        statement = (
+            select(DilemmaDB.collection, func.count(DilemmaDB.id))
+            .where(DilemmaDB.collection.is_not(None))
+            .group_by(DilemmaDB.collection)
+            .order_by(DilemmaDB.collection)
+        )
+        result = await session.execute(statement)
+        collections = [(row[0], row[1]) for row in result.all()]
+
+    await db.close()
+    return collections
+
+
+async def select_collection() -> str | None:
+    """Let user select existing collection or create new one.
+
+    Returns:
+        Collection name or None for no collection
+    """
+    # Get existing collections
+    collections = await get_existing_collections()
+
+    console.print("\n[bold]Collection Assignment[/bold]")
+    console.print("Collections group dilemmas into test sets for standardized testing.")
+
+    if collections:
+        console.print("\n[cyan]Existing collections:[/cyan]")
+        table = Table(show_header=True, header_style="bold magenta")
+        table.add_column("#", style="dim", width=4)
+        table.add_column("Collection Name", style="cyan")
+        table.add_column("Dilemmas", style="green", justify="right")
+
+        for i, (name, count) in enumerate(collections, 1):
+            table.add_row(str(i), name, str(count))
+
+        console.print(table)
+        console.print("\n[yellow]Options:[/yellow]")
+        console.print("  • Enter a number to add to existing collection")
+        console.print("  • Enter a new name to create new collection")
+        console.print("  • Press Enter to skip collection assignment")
+
+        choice = Prompt.ask("\nYour choice").strip()
+
+        if not choice:
+            return None
+
+        # Check if it's a number (selecting existing)
+        try:
+            num = int(choice)
+            if 1 <= num <= len(collections):
+                return collections[num - 1][0]
+        except ValueError:
+            pass
+
+        # Otherwise it's a new collection name
+        return choice
+    else:
+        console.print("\n[yellow]No existing collections found.[/yellow]")
+        console.print("Enter a collection name (e.g., 'standard_v1', 'pilot_study') or press Enter to skip:")
+        choice = Prompt.ask("Collection name").strip()
+        return choice if choice else None
+
+
 def get_user_inputs() -> tuple[int, list[str], list[str], tuple[int, int]]:
     """Collect generation parameters from user.
 
@@ -118,7 +194,7 @@ def get_user_inputs() -> tuple[int, list[str], list[str], tuple[int, int]]:
     return count, prompt_versions, models, (diff_min, diff_max)
 
 
-def print_summary(count: int, prompts: list[str], models: list[str], diff_range: tuple[int, int]):
+def print_summary(count: int, prompts: list[str], models: list[str], diff_range: tuple[int, int], collection: str | None, batch_id: str):
     """Print generation summary."""
     console.print("\n" + "=" * 80)
     console.print("[bold cyan]Generation Summary[/bold cyan]")
@@ -128,6 +204,11 @@ def print_summary(count: int, prompts: list[str], models: list[str], diff_range:
     console.print(f"  Models: [green]{', '.join(models)}[/green]")
     console.print(f"  Difficulty range: [yellow]{diff_range[0]}-{diff_range[1]}[/yellow]")
     console.print(f"  Diversity: [magenta]Enabled[/magenta]")
+    if collection:
+        console.print(f"  Collection: [bold yellow]{collection}[/bold yellow]")
+    else:
+        console.print(f"  Collection: [dim](none)[/dim]")
+    console.print(f"  Batch ID: [dim]{batch_id[:8]}...[/dim]")
     console.print("=" * 80 + "\n")
 
 
@@ -136,6 +217,8 @@ async def generate_and_save_incrementally(
     prompt_versions: list[str],
     models: list[str],
     difficulty_range: tuple[int, int],
+    collection: str | None,
+    batch_id: str,
 ) -> list[DilemmaDB]:
     """Generate dilemmas one by one with incremental saving and progress display.
 
@@ -144,6 +227,8 @@ async def generate_and_save_incrementally(
         prompt_versions: List of prompt versions to randomly choose from
         models: List of models to randomly choose from
         difficulty_range: (min, max) difficulty range
+        collection: Collection name to assign
+        batch_id: Batch ID for this generation run
 
     Returns:
         List of saved DilemmaDB instances
@@ -248,6 +333,10 @@ async def generate_and_save_incrementally(
                         'difficulty': difficulty,
                         'error': f"Missing {'variables' if not dilemma.variables else 'modifiers'}: {error_msg}"
                     })
+
+            # Apply collection and batch_id
+            dilemma.collection = collection
+            dilemma.batch_id = batch_id
 
             # Save to database
             try:
@@ -374,8 +463,14 @@ async def main():
         # Get user inputs
         count, prompt_versions, models, difficulty_range = get_user_inputs()
 
+        # Select collection
+        collection = await select_collection()
+
+        # Generate batch ID
+        batch_id = str(uuid.uuid4())
+
         # Print summary
-        print_summary(count, prompt_versions, models, difficulty_range)
+        print_summary(count, prompt_versions, models, difficulty_range, collection, batch_id)
 
         # Confirm
         console.print("[yellow]Ready to start generation?[/yellow]")
@@ -393,6 +488,8 @@ async def main():
             prompt_versions=prompt_versions,
             models=models,
             difficulty_range=difficulty_range,
+            collection=collection,
+            batch_id=batch_id,
         )
 
         # Print results

@@ -1,2 +1,3 @@
-- make sure we can group dilemmas into test batteries (some field specifying the id)
-- add a script to upload local dilemmas with a specific label to the remote dbok
+- add a script to upload local dilemmas with a specific label to the remote db
+- create front that allows a person to register, run through their test and generate their values.md file
+- in the front end: choose whether you are a bot or not. special experience for bots. cloudflare protection for not bots.

@@ -63,6 +63,10 @@ class DilemmaDB(SQLModel, table=True):
     version: int = Field(default=1, description="Version number")
     parent_id: str | None = Field(default=None, index=True, description="Parent dilemma ID if variation")
 
+    # Collection & Batch (for organizing dilemmas into test sets)
+    collection: str | None = Field(default=None, index=True, description="Collection/battery name")
+    batch_id: str | None = Field(default=None, index=True, description="Batch generation run ID")
+
     @classmethod
     def from_domain(cls, dilemma: Dilemma) -> "DilemmaDB":
         """Convert domain Dilemma model to database model.
@@ -83,6 +87,8 @@ class DilemmaDB(SQLModel, table=True):
             tags_json=json.dumps(dilemma.tags),
             version=dilemma.version,
             parent_id=dilemma.parent_id,
+            collection=dilemma.collection,
+            batch_id=dilemma.batch_id,
         )
 
     def to_domain(self) -> Dilemma:
