@@ -1,3 +1,5 @@
-- add a script to upload local dilemmas with a specific label to the remote db
 - create front that allows a person to register, run through their test and generate their values.md file
-- in the front end: choose whether you are a bot or not. special experience for bots. cloudflare protection for not bots.
+- on the front end: choose whether you are a bot or not. special experience for bots. cloudflare protection for not bots.
+
+
+- prepare dataset of judgjments for kaggle
