@@ -49,20 +49,25 @@
 {% if experiment %}
 <div style="margin-bottom: 30px;">
     <h1>{{ experiment.title }}</h1>
-    <div class="header-flex" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
-        <div>
+    <div class="header-flex">
+        <div style="margin-bottom: 10px;">
             <span class="badge badge-domain">{{ experiment.date }}</span>
         </div>
         <div class="button-group" style="display: flex; gap: 10px;">
             <a href="/research/{{ experiment.slug }}/download"
                class="badge"
-               style="background: #2c5282; color: white; text-decoration: none; padding: 10px 20px; font-size: 1em;">
-                📥 Download Data Bundle
+               style="background: #2c5282; color: white; text-decoration: none; padding: 8px 16px; font-size: 0.85em;">
+                📥 Download Data
             </a>
+            <button onclick="window.print()"
+                    class="badge print-button"
+                    style="background: #3a6e3a; color: white; border: none; cursor: pointer; padding: 8px 16px; font-size: 0.85em;">
+                🖨️ Print / PDF
+            </button>
             <a href="/research/guide"
                class="badge"
-               style="background: #5a5a5a; color: white; text-decoration: none; padding: 10px 20px; font-size: 1em;">
-                📖 Reproducibility Guide
+               style="background: #5a5a5a; color: white; text-decoration: none; padding: 8px 16px; font-size: 0.85em;">
+                📖 Guide
             </a>
         </div>
     </div>
@@ -229,11 +234,12 @@
             gap: 10px !important;
         }
 
-        .button-group a {
+        .button-group a,
+        .button-group button {
             width: 100%;
             justify-content: center;
-            padding: 12px 20px !important;
-            font-size: 0.95em !important;
+            padding: 10px 16px !important;
+            font-size: 0.85em !important;
             display: flex !important;
         }
 
@@ -253,6 +259,32 @@
 
         .markdown-content h3 {
             font-size: 1.1em;
+        }
+    }
+
+    /* Print button styling */
+    .print-button {
+        font-family: 'Inter', -apple-system, sans-serif;
+    }
+
+    /* Print styles for research detail page */
+    @media print {
+        /* Remove the margin from the h1 wrapper div */
+        div[style*="margin-bottom: 30px"] {
+            margin-bottom: 0 !important;
+            page-break-inside: avoid;
+            page-break-after: avoid;
+        }
+
+        /* Ensure h1 doesn't break */
+        h1 {
+            page-break-inside: avoid;
+            page-break-after: avoid;
+        }
+
+        /* Hide print button when printing */
+        .print-button {
+            display: none !important;
         }
     }
 </style>
