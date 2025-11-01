@@ -8,6 +8,8 @@ research_question: "Do large language models make different ethical decisions wh
 experiment_id: "b191388e-3994-4ebd-96cc-af0d033c5230"
 models: ["GPT-5", "Claude 4.5 Sonnet", "Gemini 2.5 Pro", "Grok-4"]
 tags: ["AI safety", "evaluation-deployment gap", "ethical decision-making", "benchmark validity", "model alignment", "theory-action gap"]
+og_image: "output/figures/fig1_theory_action_gap.png"
+og_image_alt: "Theory-action gap showing 33.4% reversal rate across four frontier LLMs"
 data:
   dilemmas: 20
   judgements: 12802
