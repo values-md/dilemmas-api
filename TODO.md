@@ -3,3 +3,5 @@
 
 
 - prepare dataset of judgjments for kaggle
+
+- branding and og-image for /
