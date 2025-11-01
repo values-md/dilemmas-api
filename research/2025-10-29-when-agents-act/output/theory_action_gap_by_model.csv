@@ -1,0 +1,5 @@
+model_id,reversal,confidence_shift,difficulty_shift,reasoning_length_shift
+anthropic/claude-sonnet-4.5,0.315,0.187,-1.509,-14.444
+google/gemini-2.5-pro,0.261,0.234,-2.581,-30.645
+openai/gpt-5,0.425,0.405,-1.415,-5.963
+x-ai/grok-4,0.335,0.713,-3.232,-1.659

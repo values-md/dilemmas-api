@@ -6,7 +6,7 @@ import zipfile
 from pathlib import Path
 
 from fastapi import Depends, FastAPI, HTTPException, Query, Request
-from fastapi.responses import HTMLResponse, StreamingResponse
+from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel, Field
@@ -30,6 +30,25 @@ app = FastAPI(
 # Templates
 templates_dir = Path(__file__).parent / "templates"
 templates = Jinja2Templates(directory=str(templates_dir))
+
+
+# Custom 404 handler
+@app.exception_handler(404)
+async def custom_404_handler(request: Request, exc: HTTPException):
+    """Custom 404 page instead of default JSON response."""
+    # For API routes, return JSON
+    if request.url.path.startswith("/api/"):
+        return JSONResponse(
+            status_code=404,
+            content={"detail": "Not found"}
+        )
+
+    # For web routes, return HTML 404 page
+    return templates.TemplateResponse(
+        "404.html",
+        {"request": request},
+        status_code=404
+    )
 
 # Research folder for parsing experiments
 RESEARCH_DIR = Path(__file__).parent.parent.parent.parent / "research"
@@ -482,6 +501,7 @@ async def research_detail(request: Request, experiment_slug: str):
             "request": request,
             "experiment": experiment,
             "findings_html": findings_html,
+            "frontmatter": frontmatter,  # Pass YAML frontmatter for OG tags
         },
     )
 
@@ -501,10 +521,17 @@ async def download_research_data(experiment_slug: str):
         # Files to include (order matters for readability)
         files_to_include = [
             "README.md",
+            "findings.md",  # Main research article
             "config.json",
             "dilemmas.json",
             "judgements.json",
+            "QUALITATIVE_CODING.md",  # Qualitative analysis
+            "CITATION_VALIDATION.md",  # Citation verification
             "analyze.py",
+            "analyze_costs.py",  # Cost analysis
+            "create_figures.py",  # Figure generation
+            "run.py",  # Experiment runner
+            "check_progress.py",  # Progress monitoring
         ]
 
         # Add individual files
@@ -519,6 +546,14 @@ async def download_research_data(experiment_slug: str):
             for file_path in data_dir.rglob("*"):
                 if file_path.is_file():
                     # Preserve directory structure within zip
+                    arcname = file_path.relative_to(experiment_dir)
+                    zip_file.write(file_path, arcname=str(arcname))
+
+        # Add output/ directory contents (figures, analysis results)
+        output_dir = experiment_dir / "output"
+        if output_dir.exists() and output_dir.is_dir():
+            for file_path in output_dir.rglob("*"):
+                if file_path.is_file():
                     arcname = file_path.relative_to(experiment_dir)
                     zip_file.write(file_path, arcname=str(arcname))
 

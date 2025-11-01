@@ -141,7 +141,7 @@ class JudgementDB(SQLModel, table=True):
 
     # Presentation & decision (indexed for querying)
     mode: str = Field(index=True, description="theory or action")
-    choice_id: str | None = Field(index=True, description="Which choice was selected")
+    choice_id: str | None = Field(index=False, description="Which choice was selected")
     created_at: datetime = Field(index=True, description="When judgement was made")
 
     # Experimental conditions (for filtering results)

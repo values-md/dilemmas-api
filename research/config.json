@@ -1,0 +1,18 @@
+{
+  "experiment_id": "b191388e-3994-4ebd-96cc-af0d033c5230",
+  "exported_at": "2025-11-01T11:02:33.119820+00:00",
+  "total_judgements": 12802,
+  "models": [
+    "anthropic/claude-sonnet-4.5",
+    "google/gemini-2.5-pro",
+    "openai/gpt-5",
+    "x-ai/grok-4"
+  ],
+  "temperatures": [
+    1.0
+  ],
+  "dilemmas": 20,
+  "repetitions": 0,
+  "mode": "theory",
+  "system_prompt_type": "none"
+}

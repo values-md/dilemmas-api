@@ -16,9 +16,12 @@ Each bundle contains:
 - `config.json` - Experiment configuration and metadata
 - `dilemmas.json` - Full dilemmas used (with tool schemas, variables, etc.)
 - `judgements.json` - All judgements with choices, confidence, reasoning
-- `analyze.py` - Analysis script (if available)
+- `findings.md` - Research article with complete analysis (if available)
+- `analyze.py` - Analysis script (may include multiple: `analyze.py`, `analyze_costs.py`, `create_figures.py`, etc.)
 - `data/*.csv` - Pre-computed summary statistics
+- `output/` - Generated figures, tables, and analysis artifacts (if available)
 - `values/*.md` - VALUES.md frameworks (if experiment tested ethical frameworks)
+- Additional documentation files (e.g., `QUALITATIVE_CODING.md`, `CITATION_VALIDATION.md`) depending on experiment
 
 ### 2. Run Analysis
 
@@ -54,6 +57,7 @@ Array of judgement objects:
   "dilemma_id": "uuid",
   "experiment_id": "uuid",
   "model": "anthropic/claude-sonnet-4.5",
+  "model_id": "anthropic/claude-4.5-sonnet-20250929",
   "temperature": 1.0,
   "choice_id": "notify",
   "confidence": 8.5,
@@ -72,8 +76,11 @@ Array of judgement objects:
 
 **Key fields:**
 - `choice_id` - Which option was selected
+- `model` - Model identifier used for API calls (e.g., "anthropic/claude-sonnet-4.5")
+- `model_id` - Specific model version used (e.g., "anthropic/claude-4.5-sonnet-20250929")
 - `confidence` / `difficulty` - Self-reported metrics (0-10 scale)
 - `reasoning` - LLM's justification for the choice
+- `mode` - "theory" (hypothetical) or "action" (with tool-calling)
 - `experiment_metadata` - Custom fields specific to each experiment
 
 ### dilemmas.json
@@ -208,6 +215,6 @@ Experiment ID: [specific-experiment-id]
 ```
 - - -
 
-**Last Updated**: 2025-10-29
+**Last Updated**: 2025-11-01
 
 **Status**: Living document

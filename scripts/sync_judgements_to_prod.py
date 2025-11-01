@@ -10,6 +10,9 @@ Usage:
     # Actually sync (will ask for confirmation)
     uv run python scripts/sync_judgements_to_prod.py
 
+    # Skip confirmation prompt (non-interactive)
+    uv run python scripts/sync_judgements_to_prod.py --yes
+
     # Filter by experiment ID
     uv run python scripts/sync_judgements_to_prod.py --experiment-id abc123...
 
@@ -17,7 +20,7 @@ Usage:
     uv run python scripts/sync_judgements_to_prod.py --collections "initial_experiments,standard_v1"
 
     # Only sync judgements for dilemmas that exist in prod
-    uv run python scripts/sync_judgements_to_prod.py --only-with-dilemmas
+    uv run python scripts/sync_judgements_to_prod.py --only-with-dilemmas --yes
 """
 
 import argparse
@@ -106,6 +109,11 @@ async def main():
         "--only-with-dilemmas",
         action="store_true",
         help="Only sync judgements where the dilemma exists in production",
+    )
+    parser.add_argument(
+        "--yes",
+        action="store_true",
+        help="Skip confirmation prompt",
     )
 
     args = parser.parse_args()
@@ -248,9 +256,14 @@ async def main():
         console.print(f"[bold]This will add {len(missing_judgements)} judgements to production.[/bold]")
         console.print("[yellow]Existing judgements in production will NOT be modified.[/yellow]\n")
 
-        if not Confirm.ask("Continue with sync?", default=False):
-            console.print("[yellow]Cancelled.[/yellow]")
-            return 0
+        if not args.yes:
+            try:
+                if not Confirm.ask("Continue with sync?", default=False):
+                    console.print("[yellow]Cancelled.[/yellow]")
+                    return 0
+            except EOFError:
+                console.print("\n[yellow]No interactive terminal detected. Use --yes to confirm sync.[/yellow]")
+                return 1
 
         # Sync to production
         console.print("\n[cyan]Syncing to production...[/cyan]")

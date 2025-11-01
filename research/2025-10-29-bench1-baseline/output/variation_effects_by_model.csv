@@ -1,9 +1,0 @@
-model_id,mode,mean,std
-anthropic/claude-sonnet-4.5,action,0.101,0.126
-anthropic/claude-sonnet-4.5,theory,0.099,0.126
-google/gemini-2.5-pro,action,0.136,0.15
-google/gemini-2.5-pro,theory,0.115,0.139
-openai/gpt-5,action,0.123,0.15
-openai/gpt-5,theory,0.122,0.153
-x-ai/grok-4,action,0.138,0.19
-x-ai/grok-4,theory,0.112,0.088

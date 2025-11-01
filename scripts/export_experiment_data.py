@@ -198,7 +198,12 @@ async def export_experiment_data(experiment_id: str, output_dir: Path):
 
         # Export judgements
         judgements_file = output_dir.parent / "judgements.json"
-        judgements_data = [j.model_dump(mode='json') for j in judgements]
+        judgements_data = []
+        for j in judgements:
+            j_dict = j.model_dump(mode='json')
+            # Add model_id at top level for easier access
+            j_dict['model_id'] = j.get_judge_id()
+            judgements_data.append(j_dict)
         with open(judgements_file, 'w') as f:
             json.dump(judgements_data, f, indent=2, default=str)
         print(f"✓ Exported {len(judgements_data)} judgements to {judgements_file}")

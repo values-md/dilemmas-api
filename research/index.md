@@ -70,16 +70,15 @@ Does time pressure and high stakes amplify demographic bias in LLM ethical decis
 
 ---
 
-## ✅ Completed Experiments
-
-### [2025-10-29: bench-1 Baseline](2025-10-29-bench1-baseline/findings.md)
-Comprehensive systematic LLM behavior mapping across 4 frontier models
+### [2025-10-29: When Agents Act](2025-10-29-when-agents-act/findings.md)
+Behavioral shifts in LLM ethical decision-making from evaluation to deployment
 
 **Finding 1:** Theory-action gap is real and large (33.4% reversal rate, GPT-5: 42.5%)
 **Finding 2:** Consensus collapses when actions feel real (71% → 43%, -27.9pp)
 **Finding 3:** Generator-judge difficulty mismatch (r=0.039) - fundamental benchmark validity challenge
 **Data:** 12,802 judgements (99.95% completion), 4 models, 20 dilemmas, 1,601 variations, theory + action modes
 **Key Insight:** Models behave differently when they believe actions are real. Evaluation benchmarks (theory mode) may not predict production behavior (action mode).
+**Publication:** Full research article available at [findings.md](2025-10-29-when-agents-act/findings.md)
 
 ---
 

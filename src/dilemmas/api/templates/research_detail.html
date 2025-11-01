@@ -1,6 +1,47 @@
 {% extends "base.html" %}
 
-{% block title %}{{ experiment.title if experiment else 'Research Experiment' }} - VALUES.md{% endblock %}
+{% block title %}{{ frontmatter.get('title', experiment.title if experiment else 'Research Experiment') }} - VALUES.md{% endblock %}
+
+{% block head %}
+<!-- Open Graph / Social Media Meta Tags -->
+<meta property="og:type" content="article">
+<meta property="og:title" content="{{ frontmatter.get('title', experiment.title if experiment else 'Research Experiment') }}">
+<meta property="og:description" content="{{ frontmatter.get('abstract', experiment.summary if experiment else 'Research on LLM ethical decision-making') }}">
+<meta property="og:url" content="{{ request.url }}">
+<meta property="og:site_name" content="VALUES.md Research">
+
+{% if frontmatter.get('date') %}
+<meta property="article:published_time" content="{{ frontmatter.get('date') }}">
+{% endif %}
+
+{% if frontmatter.get('tags') %}
+{% for tag in frontmatter.get('tags', []) %}
+<meta property="article:tag" content="{{ tag }}">
+{% endfor %}
+{% endif %}
+
+<!-- OG Image - use first figure if available -->
+{% if experiment %}
+{% set base_url = 'https://research.values.md' if 'localhost' not in request.url.netloc else (request.url.scheme + '://' + request.url.netloc) %}
+<meta property="og:image" content="{{ base_url }}/static/research/{{ experiment.slug }}/output/figures/fig1_theory_action_gap.png">
+<meta property="og:image:alt" content="Research findings visualization">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+{% endif %}
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="{{ frontmatter.get('title', experiment.title if experiment else 'Research Experiment') }}">
+<meta name="twitter:description" content="{{ frontmatter.get('abstract', experiment.summary if experiment else 'Research on LLM ethical decision-making')[:200] }}">
+{% if experiment %}
+{% set base_url = 'https://research.values.md' if 'localhost' not in request.url.netloc else (request.url.scheme + '://' + request.url.netloc) %}
+<meta name="twitter:image" content="{{ base_url }}/static/research/{{ experiment.slug }}/output/figures/fig1_theory_action_gap.png">
+{% endif %}
+
+<!-- Additional metadata -->
+<meta name="description" content="{{ frontmatter.get('abstract', experiment.summary if experiment else 'Research on LLM ethical decision-making')[:160] }}">
+<meta name="keywords" content="{{ ', '.join(frontmatter.get('tags', [])) }}">
+{% endblock %}
 
 {% block content %}
 <a href="/research" class="back-link">← Back to Research</a>
