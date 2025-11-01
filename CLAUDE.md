@@ -306,6 +306,37 @@ async def run_experiment():
     console.print(f"Export: uv run python scripts/export_experiment_data.py {experiment_id} ...")
 ```
 
+**CRITICAL: Balanced Variation Counts**
+
+⚠️ **ALWAYS design for 50-100 variations per dilemma**
+
+When extracting variables, avoid combinatorial explosion:
+- ❌ **BAD:** 4 variables × 4 values each = 256 variations per dilemma
+- ✅ **GOOD:** 2-3 variables × 3-4 values each = 9-64 variations per dilemma
+
+**Why this matters:**
+- Unbalanced variation counts create statistical bias (a few dilemmas dominate all conclusions)
+- High-variation dilemmas cost 10-50× more than low-variation dilemmas
+- Aggregate metrics become misleading when top 4 dilemmas represent 64% of data
+
+**Before finalizing experiment design:**
+1. Calculate variation count for EACH dilemma
+2. Verify all dilemmas are in 50-100 range
+3. If some are too high (>100), reduce variables or sample down
+4. If some are too low (<50), add variables or increase values
+
+**Quick check:**
+```python
+variation_count = 1
+for var, values in dilemma.variables.items():
+    variation_count *= len(values)
+
+if not 50 <= variation_count <= 100:
+    print(f"⚠️ Variation count {variation_count} outside target range!")
+```
+
+See `research/EXPERIMENT_DESIGN_GUIDELINES.md` for comprehensive design principles.
+
 See `research/index.md` for full experiment workflow documentation.
 
 ### 9. Quality Control System

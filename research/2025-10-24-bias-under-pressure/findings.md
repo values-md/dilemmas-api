@@ -4,7 +4,7 @@ title: "Demographic Bias Under Time Pressure and High Stakes"
 slug: "2025-10-24-bias-under-pressure"
 date: 2025-10-24
 status: completed
-experiment_id: "b191388e-3994-4ebd-96cc-af0d033c5230"
+experiment_id: "c0ecd87e-7adc-4a9b-8466-0edda52235be"
 
 # Research Summary
 research_question: "Does time pressure and high stakes amplify demographic bias in LLM ethical decision-making?"

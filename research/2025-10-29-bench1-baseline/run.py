@@ -24,11 +24,14 @@ Failsafes:
 import asyncio
 import hashlib
 import itertools
+import logging
+import os
 import signal
 import sys
 import uuid
 from pathlib import Path
 from datetime import datetime
+from logging.handlers import RotatingFileHandler
 from typing import Set, Tuple
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
@@ -44,6 +47,34 @@ from dilemmas.models.db import DilemmaDB, JudgementDB
 from dilemmas.services.judge import DilemmaJudge
 
 console = Console()
+
+# Setup detailed logging
+LOGS_DIR = Path(__file__).parent / "logs"
+LOGS_DIR.mkdir(exist_ok=True)
+
+# Main log with rotation (10MB per file, keep 5 files)
+logger = logging.getLogger("bench1_experiment")
+logger.setLevel(logging.DEBUG)
+
+# File handler with rotation
+file_handler = RotatingFileHandler(
+    LOGS_DIR / "experiment_debug.log",
+    maxBytes=10 * 1024 * 1024,  # 10MB
+    backupCount=5
+)
+file_handler.setLevel(logging.DEBUG)
+file_formatter = logging.Formatter(
+    '%(asctime)s [%(levelname)s] %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
+file_handler.setFormatter(file_formatter)
+logger.addHandler(file_handler)
+
+# Also log to console for important messages
+console_handler = logging.StreamHandler()
+console_handler.setLevel(logging.INFO)
+console_handler.setFormatter(file_formatter)
+logger.addHandler(console_handler)
 
 # Database - use absolute path (relative to project root)
 PROJECT_ROOT = Path(__file__).parent.parent.parent
@@ -61,7 +92,7 @@ CONFIG = {
         "openai/gpt-5",
         "anthropic/claude-sonnet-4.5",
         "google/gemini-2.5-pro",
-        "x-ai/grok-4",
+        "x-ai/grok-4",  # Re-enabled to complete experiment
     ],
     "modes": ["theory", "action"],
     "collection": "bench-1",
@@ -169,8 +200,11 @@ async def judge_with_retry(
     Returns:
         (success: bool, judgement: Judgement | None, error: str | None)
     """
+    logger.debug(f"Starting judgement: {model_id} | {dilemma.title[:30]} | {mode}")
+
     for attempt in range(MAX_RETRIES):
         try:
+            start_time = datetime.now()
             judgement = await judge.judge_dilemma(
                 dilemma=dilemma,
                 model_id=model_id,
@@ -178,15 +212,19 @@ async def judge_with_retry(
                 mode=mode,
                 variable_values=variable_values,
             )
+            elapsed = (datetime.now() - start_time).total_seconds()
+            logger.debug(f"✓ Completed in {elapsed:.1f}s: {model_id} | {dilemma.title[:30]} | {mode}")
             return (True, judgement, None)
 
         except Exception as e:
             error_msg = str(e)
+            logger.warning(f"Attempt {attempt+1}/{MAX_RETRIES} failed: {model_id} | {error_msg[:100]}")
 
             # Check if rate limit error
             if "429" in error_msg or "rate limit" in error_msg.lower():
                 if attempt < MAX_RETRIES - 1:
                     wait_time = BACKOFF_FACTOR ** (attempt + 1)
+                    logger.info(f"Rate limit hit, waiting {wait_time}s...")
                     console.print(f"[yellow]  Rate limit hit, waiting {wait_time}s...[/yellow]")
                     await asyncio.sleep(wait_time)
                     continue
@@ -198,6 +236,7 @@ async def judge_with_retry(
                 continue
 
             # All retries exhausted
+            logger.error(f"✗ All retries exhausted: {model_id} | {error_msg[:200]}")
             return (False, None, error_msg)
 
     return (False, None, "Max retries exceeded")
@@ -207,11 +246,20 @@ async def run_experiment(dry_run: bool = False):
     """Run the bench-1 baseline experiment."""
     global judgements_completed, failures
 
+    logger.info("=" * 80)
+    logger.info("Starting bench-1 Baseline Experiment")
+    logger.info(f"Experiment ID: {CONFIG['experiment_id']}")
+    logger.info(f"Models: {CONFIG['models']}")
+    logger.info(f"Modes: {CONFIG['modes']}")
+    logger.info("=" * 80)
+
     console.print("\n[bold cyan]bench-1 Baseline: Systematic LLM Behavior Mapping[/bold cyan]")
     console.print(f"[yellow]Experiment ID:[/yellow] {CONFIG['experiment_id']}\n")
 
     # Load dilemmas
+    logger.info("Loading dilemmas from bench-1 collection...")
     dilemmas = await load_bench1_dilemmas()
+    logger.info(f"Loaded {len(dilemmas)} dilemmas")
 
     if len(dilemmas) != 20:
         console.print(f"[red]Error:[/red] Expected 20 bench-1 dilemmas, found {len(dilemmas)}")
@@ -239,6 +287,11 @@ async def run_experiment(dry_run: bool = False):
 
     total_judgements = len(experiment_plan)
     console.print(f"[green]✓[/green] Generated {total_judgements:,} judgement configurations\n")
+
+    # Shuffle to distribute models evenly across batches for true parallelism
+    import random
+    random.shuffle(experiment_plan)
+    console.print("[cyan]Shuffled experiment plan for parallel execution across models[/cyan]\n")
 
     # Show summary table
     table = Table(title="Experiment Configuration")
@@ -343,16 +396,44 @@ async def run_experiment(dry_run: bool = False):
 
             progress.update(task, advance=1)
 
-    with Progress(
-        SpinnerColumn(),
-        TextColumn("[progress.description]{task.description}"),
-        BarColumn(),
-        TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
-        TextColumn("({task.completed}/{task.total})"),
-        TimeRemainingColumn(),
-        console=console,
-    ) as progress:
-        task = progress.add_task("[cyan]Running judgements...", total=len(experiment_plan))
+    # Detect if running in background (no TTY) and disable progress bar
+    has_tty = sys.stdout.isatty()
+
+    if has_tty:
+        # Interactive mode with progress bar
+        with Progress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            BarColumn(),
+            TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
+            TextColumn("({task.completed}/{task.total})"),
+            TimeRemainingColumn(),
+            console=console,
+        ) as progress:
+            task = progress.add_task("[cyan]Running judgements...", total=len(experiment_plan))
+
+            # Process in batches to avoid overwhelming event loop
+            batch_size = 100
+            for i in range(0, len(experiment_plan), batch_size):
+                if shutdown_requested:
+                    break
+
+                batch = experiment_plan[i:i + batch_size]
+                await asyncio.gather(*[process_item(item, progress, task) for item in batch])
+    else:
+        # Background mode without progress bar - just use checkpoints
+        console.print("[cyan]Running in background mode (checkpoints every 50 judgements)...[/cyan]\n")
+        logger.info("Running in background mode (no TTY detected)")
+
+        # Create a dummy progress/task for process_item compatibility
+        class DummyProgress:
+            def update(self, task, **kwargs): pass
+
+        class DummyTask:
+            pass
+
+        progress = DummyProgress()
+        task = DummyTask()
 
         # Process in batches to avoid overwhelming event loop
         batch_size = 100
@@ -360,8 +441,15 @@ async def run_experiment(dry_run: bool = False):
             if shutdown_requested:
                 break
 
-            batch = experiment_plan[i:i + batch_size]
+            batch_start = i
+            batch_end = min(i + batch_size, len(experiment_plan))
+            batch = experiment_plan[i:batch_end]
+            logger.info(f"Processing batch {batch_start//batch_size + 1}/{(len(experiment_plan)-1)//batch_size + 1}: items {batch_start}-{batch_end-1} ({len(batch)} judgements)")
+
+            batch_timer = datetime.now()
             await asyncio.gather(*[process_item(item, progress, task) for item in batch])
+            batch_elapsed = (datetime.now() - batch_timer).total_seconds()
+            logger.info(f"Batch completed in {batch_elapsed:.1f}s ({len(batch)/batch_elapsed:.2f} judgements/sec)")
 
     # Summary
     console.print("\n" + "=" * 80)

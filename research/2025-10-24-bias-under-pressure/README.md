@@ -1,8 +1,10 @@
 # Bias Under Pressure: Demographic Bias Amplification Under Time Constraints and High Stakes
 
-**Experiment ID:** TBD (generated at runtime)
+**Experiment ID:** `c0ecd87e-7adc-4a9b-8466-0edda52235be`
 **Date:** 2025-10-24
-**Status:** Ready to run
+**Status:** Completed
+
+> **Note:** This experiment originally had UUID `b191388e-3994-4ebd-96cc-af0d033c5230`, which was accidentally reused for the 2025-10-29 bench-1 baseline experiment. On 2025-10-31, the 384 judgements from this experiment were migrated to the new UUID shown above to resolve the collision.
 
 ---
 

@@ -34,6 +34,9 @@ templates = Jinja2Templates(directory=str(templates_dir))
 # Research folder for parsing experiments
 RESEARCH_DIR = Path(__file__).parent.parent.parent.parent / "research"
 
+# Mount research directory as static files to serve images
+app.mount("/research-static", StaticFiles(directory=str(RESEARCH_DIR)), name="research-static")
+
 
 # ============================================================================
 # REQUEST/RESPONSE MODELS
