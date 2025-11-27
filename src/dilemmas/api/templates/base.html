@@ -5,21 +5,21 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}VALUES.md | Research on LLM's and Humans' Ethical Decision-Making{% endblock %}</title>
 
-    <!-- Open Graph / Facebook -->
+    {% block head %}
+    <!-- Default Open Graph / Facebook (can be overridden by child templates) -->
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://research.values.md/">
-    <meta property="og:title" content="{% block og_title %}VALUES.md | Research on LLM's and Humans' Ethical Decision-Making{% endblock %}">
-    <meta property="og:description" content="{% block og_description %}Research on how Large Language Models make ethical decisions. Featured: When Agents Act - LLMs reverse ethical decisions 47.6% of the time between theory and action modes.{% endblock %}">
+    <meta property="og:title" content="VALUES.md | Research on LLM's and Humans' Ethical Decision-Making">
+    <meta property="og:description" content="Research on how Large Language Models make ethical decisions. Featured: When Agents Act - LLMs reverse ethical decisions 47.6% of the time between theory and action modes.">
     <meta property="og:image" content="https://research.values.md/static/android-chrome-512x512.png">
 
-    <!-- Twitter -->
+    <!-- Default Twitter Card (can be overridden by child templates) -->
     <meta name="twitter:card" content="summary">
     <meta name="twitter:url" content="https://research.values.md/">
-    <meta name="twitter:title" content="{% block twitter_title %}VALUES.md | Research on LLM's and Humans' Ethical Decision-Making{% endblock %}">
-    <meta name="twitter:description" content="{% block twitter_description %}Research on how Large Language Models make ethical decisions. Featured: When Agents Act - LLMs reverse ethical decisions 47.6% of the time between theory and action modes.{% endblock %}">
+    <meta name="twitter:title" content="VALUES.md | Research on LLM's and Humans' Ethical Decision-Making">
+    <meta name="twitter:description" content="Research on how Large Language Models make ethical decisions. Featured: When Agents Act - LLMs reverse ethical decisions 47.6% of the time between theory and action modes.">
     <meta name="twitter:image" content="https://research.values.md/static/android-chrome-512x512.png">
-
-    {% block head %}{% endblock %}
+    {% endblock %}
     <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
     <link rel="icon" type="image/png" sizes="16x16" href="/static/favicon-16x16.png">
     <link rel="icon" type="image/png" sizes="32x32" href="/static/favicon-32x32.png">
