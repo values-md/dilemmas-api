@@ -1,6 +1,6 @@
 """Service for generating VALUES.md files from human judgements."""
 
-from datetime import datetime, timezone
+from datetime import datetime
 from pathlib import Path
 
 from pydantic_ai import Agent
@@ -10,7 +10,6 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from dilemmas.llm.openrouter import create_openrouter_model
 from dilemmas.models.db import DilemmaDB, JudgementDB
 from dilemmas.models.judgement import Judgement
-from dilemmas.models.values import ValuesMarkdownOutput
 
 
 class ValuesGenerator:
@@ -27,7 +26,7 @@ class ValuesGenerator:
         self,
         session: AsyncSession,
         participant_id: str,
-        model_id: str = "openai/gpt-4.1-mini",
+        model_id: str = "google/gemini-2.5-flash",
         temperature: float = 0.7,
     ) -> tuple[str, int]:
         """Generate VALUES.md from participant's judgements.
@@ -35,7 +34,7 @@ class ValuesGenerator:
         Args:
             session: Database session
             participant_id: Participant identifier
-            model_id: LLM model to use (default: gpt-4.1-mini)
+            model_id: LLM model to use (default: google/gemini-2.5-flash)
             temperature: Generation temperature (default: 0.7 for creativity)
 
         Returns:
@@ -46,14 +45,15 @@ class ValuesGenerator:
         """
         # Load judgements
         judgements = await self._load_judgements(session, participant_id)
+        judgement_count = len(judgements)
 
         # Require at least 5 judgements (flexible for different assessment lengths)
         # Note: Current bench-2 collection has 10 dilemmas
         min_required = 5
-        if len(judgements) < min_required:
+        if judgement_count < min_required:
             raise ValueError(
                 f"Insufficient judgements for VALUES.md generation. "
-                f"Found {len(judgements)}, minimum {min_required} required."
+                f"Found {judgement_count}, minimum {min_required} required."
             )
 
         # Load system prompt
@@ -65,12 +65,12 @@ class ValuesGenerator:
         # Get current date for the prompt
         today = datetime.now().strftime("%Y-%m-%d")
 
-        # Create agent with simple markdown output
-        # Pass temperature and max_tokens via model_settings to Agent constructor
+        # Create agent with plain text output (no JSON structure required)
+        # This is simpler and less prone to truncation/validation issues
         model = create_openrouter_model(model_id=model_id)
         agent = Agent(
             model,
-            output_type=ValuesMarkdownOutput,
+            output_type=str,  # Plain markdown output, no JSON wrapper
             system_prompt=system_prompt,
             model_settings={
                 'temperature': temperature,
@@ -88,13 +88,13 @@ IMPORTANT: Today's date is {today}. Use this exact date for the "Last updated" f
 
 Extract patterns, formulate actionable decision rules, and create a framework that AI agents can use to make decisions on behalf of this person.
 
-Remember: Be specific, provide concrete hypothetical examples (NOT references to judgements), keep it under 3000 words, and acknowledge limitations."""
+Remember: Be specific, provide concrete hypothetical examples (NOT references to judgements), keep it under 3000 words, and acknowledge limitations.
+
+Output ONLY the markdown content, nothing else."""
         )
 
-        # Extract markdown and count
-        output = result.output
-        markdown_text = output.markdown
-        judgement_count = output.judgement_count
+        # result.output is now a plain string (the markdown)
+        markdown_text = result.output
 
         return markdown_text, judgement_count
 
