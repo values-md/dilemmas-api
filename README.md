@@ -13,6 +13,25 @@ This project explores how Large Language Models make ethical decisions across di
 
 **Browse the research:** [research.values.md/research](https://research.values.md/research) - All completed experiments, findings, and downloadable data
 
+## Featured Research
+
+### When Agents Act: Measuring the Judgment-Action Gap in LLMs (2025)
+
+**Finding:** LLMs reverse ethical decisions **47.6%** of the time when transitioning from hypothetical reasoning to perceived real action.
+
+Testing 9 frontier models across 4 families (Claude, GPT, Gemini, Grok) on AI-relevant ethical dilemmas reveals a substantial judgment-action gap with critical implications for AI safety evaluation. Standard benchmarks testing hypothetical reasoning may not predict production behavior.
+
+**Resources:**
+- **Paper:** [research.values.md/research/2025-11-27-when-agents-act](https://research.values.md/research/2025-11-27-when-agents-act)
+- **Dataset:** [huggingface.co/datasets/values-md/when-agents-act](https://huggingface.co/datasets/values-md/when-agents-act) (702 judgments, CC0 license)
+- **Code:** [github.com/values-md/dilemmas-api](https://github.com/values-md/dilemmas-api)
+
+**Key Findings:**
+- 47.6% decision reversal rate (95% CI: 42.4–52.8%)
+- "Small model tax": 17-percentage-point higher inconsistency in smaller models (p = .002)
+- Consensus collapse: 59% → 28% between theory and action modes
+- Bidirectional shifts driven by harm avoidance, not simple deference
+
 ## System Capabilities
 
 **Infrastructure:**
@@ -351,7 +370,20 @@ This is an active research project. Contributions welcome:
 
 ## Citation
 
-If you use this data or findings in your research:
+If you use the "When Agents Act" dataset or findings in your research, please cite:
+
+```bibtex
+@misc{when_agents_act_2025,
+  title={When Agents Act: Measuring the Judgment-Action Gap in Large Language Models},
+  author={Claude (Anthropic) and Strakhov, George},
+  year={2025},
+  month={November},
+  url={https://research.values.md/research/2025-11-27-when-agents-act},
+  note={Dataset: \url{https://huggingface.co/datasets/values-md/when-agents-act}}
+}
+```
+
+For the overall research project:
 
 ```
 VALUES.md Research Project (2025)
@@ -359,11 +391,10 @@ https://github.com/values-md/dilemmas-api
 https://research.values.md
 ```
 
-For specific experiments, include the experiment ID from the research page.
-
 ---
 
 **Project Links:**
 - Live Site: [research.values.md](https://research.values.md)
 - GitHub: [values-md/dilemmas-api](https://github.com/values-md/dilemmas-api)
 - Research Index: [research.values.md/research](https://research.values.md/research)
+- HuggingFace Dataset: [values-md/when-agents-act](https://huggingface.co/datasets/values-md/when-agents-act)

@@ -96,9 +96,8 @@ Measuring the Judgment-Action Gap in Large Language Models
 **Data:** 702 judgments, 351 matched pairs, 167 reversals, 9 models (4 families), 10 AI-relevant dilemmas, 39 variations
 **Experiment ID:** 03de21a4-25ed-4df4-b03a-4715b1ca1256
 **Publication:** [Complete research article](2025-11-27-when-agents-act/FINDINGS.md) with statistical tests, qualitative analysis, and publication-ready figures
-**Status:** Ready
-
-*Supersedes: [2025-10-29 pilot study](2025-10-29-when-agents-act/findings.md) with refined methodology, statistical rigor, and cross-model comparison.*
+**Dataset:** [HuggingFace (CC0)](https://huggingface.co/datasets/values-md/when-agents-act)
+**Status:** Published
 
 ---
 
