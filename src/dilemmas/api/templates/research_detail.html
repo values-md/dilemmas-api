@@ -1,0 +1,380 @@
+{% extends "base.html" %}
+
+{% block title %}{{ frontmatter.get('title', experiment.title if experiment else 'Research Experiment') }} - VALUES.md{% endblock %}
+
+{% block head %}
+<!-- Open Graph / Social Media Meta Tags -->
+<meta property="og:type" content="article">
+<meta property="og:title" content="{{ frontmatter.get('title', experiment.title if experiment else 'Research Experiment') }}">
+<meta property="og:description" content="{{ frontmatter.get('abstract', experiment.summary if experiment else 'Research on LLM ethical decision-making') }}">
+<meta property="og:url" content="{{ request.url }}">
+<meta property="og:site_name" content="VALUES.md Research">
+
+{% if frontmatter.get('date') %}
+<meta property="article:published_time" content="{{ frontmatter.get('date') }}">
+{% endif %}
+
+{% if frontmatter.get('tags') %}
+{% for tag in frontmatter.get('tags', []) %}
+<meta property="article:tag" content="{{ tag }}">
+{% endfor %}
+{% endif %}
+
+<!-- OG Image - use from frontmatter if specified -->
+{% if frontmatter.get('og_image') and experiment %}
+{% set base_url = 'https://research.values.md' if 'localhost' not in request.url.netloc else (request.url.scheme + '://' + request.url.netloc) %}
+<meta property="og:image" content="{{ base_url }}/research-static/{{ experiment.slug }}/{{ frontmatter.get('og_image') }}">
+<meta property="og:image:alt" content="{{ frontmatter.get('og_image_alt', 'Research findings visualization') }}">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+{% endif %}
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="{% if frontmatter.get('og_image') %}summary_large_image{% else %}summary{% endif %}">
+<meta name="twitter:title" content="{{ frontmatter.get('title', experiment.title if experiment else 'Research Experiment') }}">
+<meta name="twitter:description" content="{{ frontmatter.get('abstract', experiment.summary if experiment else 'Research on LLM ethical decision-making')[:200] }}">
+{% if frontmatter.get('og_image') and experiment %}
+{% set base_url = 'https://research.values.md' if 'localhost' not in request.url.netloc else (request.url.scheme + '://' + request.url.netloc) %}
+<meta name="twitter:image" content="{{ base_url }}/research-static/{{ experiment.slug }}/{{ frontmatter.get('og_image') }}">
+{% endif %}
+
+<!-- Additional metadata -->
+<meta name="description" content="{{ frontmatter.get('abstract', experiment.summary if experiment else 'Research on LLM ethical decision-making')[:160] }}">
+<meta name="keywords" content="{{ ', '.join(frontmatter.get('tags', [])) }}">
+{% endblock %}
+
+{% block content %}
+<a href="/research" class="back-link">← Back to Research</a>
+
+{% if experiment %}
+<div style="margin-bottom: 30px;">
+    <h1>{{ experiment.title }}</h1>
+    <div class="header-flex">
+        <div style="margin-bottom: 10px;">
+            <span class="badge badge-domain">{{ experiment.date }}</span>
+        </div>
+        <div class="button-group" style="display: flex; gap: 10px;">
+            <a href="/research/{{ experiment.slug }}/download"
+               class="badge"
+               style="background: #2c5282; color: white; text-decoration: none; padding: 8px 16px; font-size: 0.85em;">
+                📥 Download Data
+            </a>
+            <button onclick="window.print()"
+                    class="badge print-button"
+                    style="background: #3a6e3a; color: white; border: none; cursor: pointer; padding: 8px 16px; font-size: 0.85em;">
+                🖨️ Print / PDF
+            </button>
+            <a href="/research/guide"
+               class="badge"
+               style="background: #5a5a5a; color: white; text-decoration: none; padding: 8px 16px; font-size: 0.85em;">
+                📖 Guide
+            </a>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Findings Content -->
+<div class="card">
+    <div class="markdown-content">
+        {{ findings_html|safe }}
+    </div>
+</div>
+
+<style>
+    /* Markdown content styling - Academic aesthetic */
+    .markdown-content {
+        line-height: 1.8;
+    }
+
+    .markdown-content h1 {
+        font-size: 2em;
+        margin-top: 0.5em;
+        margin-bottom: 0.5em;
+        border-bottom: 2px solid #d4d4d0;
+        padding-bottom: 0.3em;
+        color: #1a1a1a;
+    }
+
+    .markdown-content h2 {
+        font-size: 1.5em;
+        margin-top: 1.5em;
+        margin-bottom: 0.5em;
+        color: #1a1a1a;
+    }
+
+    .markdown-content h3 {
+        font-size: 1.2em;
+        margin-top: 1.2em;
+        margin-bottom: 0.5em;
+        color: #2a2a2a;
+    }
+
+    .markdown-content p {
+        margin: 1em 0;
+    }
+
+    .markdown-content ul, .markdown-content ol {
+        margin: 1em 0;
+        padding-left: 2em;
+    }
+
+    .markdown-content li {
+        margin: 0.5em 0;
+    }
+
+    .markdown-content code {
+        background: #f5f5f3;
+        padding: 2px 6px;
+        border-radius: 2px;
+        font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
+        font-size: 0.85em;
+        color: #3a3a3a;
+    }
+
+    .markdown-content pre {
+        background: #f5f5f3;
+        padding: 20px;
+        margin: 25px 0;
+        border-radius: 2px;
+        overflow-x: auto;
+        border: 1px solid #e8e8e4;
+    }
+
+    .markdown-content pre code {
+        background: none;
+        padding: 0;
+    }
+
+    .markdown-content table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 30px 0;
+        font-size: 0.9em;
+    }
+
+    .markdown-content th, .markdown-content td {
+        padding: 10px 12px;
+        text-align: left;
+        border-bottom: 1px solid #e0e0dc;
+    }
+
+    .markdown-content th {
+        font-family: 'Inter', -apple-system, sans-serif;
+        background: transparent;
+        font-weight: 600;
+        border-bottom: 2px solid #2a2a2a;
+        color: #1a1a1a;
+    }
+
+    .markdown-content tr:last-child td {
+        border-bottom: none;
+    }
+
+    .markdown-content tbody tr:nth-child(even) {
+        background: #f5f5f3;
+    }
+
+    .markdown-content blockquote {
+        margin: 30px 0;
+        padding-left: 24px;
+        border-left: 3px solid #c0c0b8;
+        font-style: italic;
+        color: #4a4a4a;
+    }
+
+    .markdown-content hr {
+        border: none;
+        border-top: 1px solid #d4d4d0;
+        margin: 40px 0;
+    }
+
+    .markdown-content a {
+        color: #2c5282;
+        text-decoration: underline;
+        text-decoration-color: rgba(44, 82, 130, 0.3);
+        text-underline-offset: 2px;
+    }
+
+    .markdown-content a:hover {
+        text-decoration-color: rgba(44, 82, 130, 0.8);
+    }
+
+    .markdown-content img {
+        max-width: 100%;
+        height: auto;
+        border-radius: 4px;
+        margin: 1em 0;
+    }
+
+    /* Mobile responsive tables */
+    @media (max-width: 768px) {
+        .markdown-content table {
+            font-size: 0.9em;
+        }
+
+        .markdown-content th, .markdown-content td {
+            padding: 8px;
+        }
+    }
+
+    /* Mobile responsive layout for research detail page */
+    @media (max-width: 768px) {
+        /* Make header section stack vertically */
+        .header-flex {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            gap: 15px !important;
+        }
+
+        /* Stack buttons vertically and make them full width */
+        .button-group {
+            flex-direction: column !important;
+            width: 100%;
+            gap: 10px !important;
+        }
+
+        .button-group a,
+        .button-group button {
+            width: 100%;
+            justify-content: center;
+            padding: 10px 16px !important;
+            font-size: 0.85em !important;
+            display: flex !important;
+        }
+
+        /* Smaller badges on mobile */
+        .badge-domain {
+            font-size: 0.75em !important;
+        }
+
+        /* Better heading sizes on mobile */
+        .markdown-content h1 {
+            font-size: 1.6em;
+        }
+
+        .markdown-content h2 {
+            font-size: 1.3em;
+        }
+
+        .markdown-content h3 {
+            font-size: 1.1em;
+        }
+    }
+
+    /* Print button styling */
+    .print-button {
+        font-family: 'Inter', -apple-system, sans-serif;
+    }
+
+    /* Print styles for research detail page */
+    @media print {
+        /* Remove the margin from the h1 wrapper div */
+        div[style*="margin-bottom: 30px"] {
+            margin-bottom: 0 !important;
+            page-break-inside: avoid;
+            page-break-after: avoid;
+        }
+
+        /* Ensure h1 doesn't break */
+        h1 {
+            page-break-inside: avoid;
+            page-break-after: avoid;
+        }
+
+        /* Hide print button when printing */
+        .print-button {
+            display: none !important;
+        }
+
+        /* Hide lightbox when printing */
+        .lightbox {
+            display: none !important;
+        }
+    }
+
+    /* Lightbox for image zoom */
+    .markdown-content img {
+        cursor: pointer;
+        transition: opacity 0.2s;
+    }
+
+    .markdown-content img:hover {
+        opacity: 0.9;
+    }
+
+    .lightbox {
+        display: none;
+        position: fixed;
+        z-index: 9999;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.9);
+        cursor: pointer;
+    }
+
+    .lightbox-content {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        max-width: 95%;
+        max-height: 95%;
+        object-fit: contain;
+    }
+
+    .lightbox-close {
+        position: absolute;
+        top: 20px;
+        right: 40px;
+        color: #f1f1f1;
+        font-size: 40px;
+        font-weight: bold;
+        cursor: pointer;
+        user-select: none;
+    }
+
+    .lightbox-close:hover {
+        color: #bbb;
+    }
+</style>
+
+<!-- Lightbox for images -->
+<div id="imageLightbox" class="lightbox" onclick="closeLightbox()">
+    <span class="lightbox-close">&times;</span>
+    <img class="lightbox-content" id="lightboxImage">
+</div>
+
+<script>
+// Add click handlers to all images in markdown content
+document.addEventListener('DOMContentLoaded', function() {
+    const images = document.querySelectorAll('.markdown-content img');
+    const lightbox = document.getElementById('imageLightbox');
+    const lightboxImg = document.getElementById('lightboxImage');
+
+    images.forEach(function(img) {
+        img.addEventListener('click', function(e) {
+            e.stopPropagation();
+            lightbox.style.display = 'block';
+            lightboxImg.src = this.src;
+            lightboxImg.alt = this.alt;
+            document.body.style.overflow = 'hidden'; // Prevent scrolling
+        });
+    });
+});
+
+function closeLightbox() {
+    document.getElementById('imageLightbox').style.display = 'none';
+    document.body.style.overflow = 'auto'; // Re-enable scrolling
+}
+
+// Close lightbox on Escape key
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        closeLightbox();
+    }
+});
+</script>
+{% endblock %}

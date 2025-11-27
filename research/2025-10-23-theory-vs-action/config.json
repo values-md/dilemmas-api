@@ -1,0 +1,15 @@
+{
+  "experiment_id": "9893765f-b69c-483b-9884-2efc173ad4ef",
+  "exported_at": "2025-10-23T18:47:09.601133+00:00",
+  "total_judgements": 40,
+  "models": [
+    "openai/gpt-4.1-mini"
+  ],
+  "temperatures": [
+    1.0
+  ],
+  "dilemmas": 4,
+  "repetitions": 5,
+  "mode": "theory",
+  "system_prompt_type": "none"
+}

@@ -1,0 +1,152 @@
+# LLM Configuration for Dilemmas Project
+
+# OpenRouter Models to Test
+models:
+  - id: moonshotai/kimi-k2-0905
+    name: Kimi K2
+    provider: openrouter
+    default_temperature: 1.0
+    supports_reasoning: false
+
+  - id: x-ai/grok-4
+    name: Grok 4
+    provider: openrouter
+    default_temperature: 1.0
+    supports_reasoning: false
+
+  - id: x-ai/grok-4-fast
+    name: Grok 4 Fast
+    provider: openrouter
+    default_temperature: 1.0
+    supports_reasoning: false
+
+  - id: openai/gpt-5
+    name: GPT-5
+    provider: openrouter
+    default_temperature: 1.0
+    supports_reasoning: false
+
+  - id: openai/gpt-4.1-mini
+    name: GPT-4.1 Mini
+    provider: openrouter
+    default_temperature: 1.0
+    supports_reasoning: false
+
+  - id: anthropic/claude-sonnet-4.5
+    name: Claude Sonnet 4.5
+    provider: openrouter
+    default_temperature: 1.0
+    supports_reasoning: true
+
+  - id: google/gemini-2.5-flash
+    name: Gemini 2.5 Flash
+    provider: openrouter
+    default_temperature: 1.0
+    supports_reasoning: true
+
+  - id: google/gemini-2.5-pro
+    name: Gemini 2.5 Pro
+    provider: openrouter
+    default_temperature: 1.0
+    supports_reasoning: true
+
+  - id: openai/gpt-oss-120b
+    name: GPT OSS 120B
+    provider: openrouter
+    default_temperature: 1.0
+    supports_reasoning: false
+
+  - id: openai/gpt-5-mini
+    name: GPT-5 Mini
+    provider: openrouter
+    default_temperature: 1.0
+    supports_reasoning: false
+
+  - id: openai/gpt-4.1
+    name: GPT-4.1
+    provider: openrouter
+    default_temperature: 1.0
+    supports_reasoning: false
+
+  - id: deepseek/deepseek-chat-v3-0324
+    name: DeepSeek Chat V3
+    provider: openrouter
+    default_temperature: 1.0
+    supports_reasoning: true
+
+# Test Configurations
+test_configs:
+  # Temperature variations
+  temperatures:
+    - 0.0   # Deterministic
+    - 0.7   # Balanced
+    - 1.0   # Default
+    - 1.5   # Creative
+
+  # Modes
+  modes:
+    - theory    # Theoretical reasoning about the dilemma
+    - action    # Believes it's real, calls tools
+
+  # Time constraints
+  time_constraints:
+    - none      # No time pressure
+    - moderate  # Some urgency mentioned
+    - critical  # Immediate decision required
+
+# OpenRouter Configuration
+openrouter:
+  base_url: https://openrouter.ai/api/v1
+  default_max_tokens: 4000
+
+# Dilemma Generation Settings
+generation:
+  # Models to use for generation
+  # If not specified, automatically uses all models from the main 'models' list above
+  # You can override by uncommenting and specifying specific models:
+  # generator_models:
+  #   - google/gemini-2.5-flash
+  #   - anthropic/claude-sonnet-4.5
+
+  # Default settings
+  default_model: openai/gpt-4.1  # GPT-4.1 for better variable extraction quality
+  default_temperature: 1.0
+  default_max_tokens: 3000
+  default_prompt_version: v2_structured
+
+  # Prompt versions available
+  prompt_versions:
+    - v1_basic
+    - v2_structured
+    - v3_creative
+    - v4_adversarial
+    - v5_consequentialist
+    - v6_relational
+    - v7_systemic
+    - v8_concise  # Short, focused dilemmas (400-800 chars)
+
+  # Seed sampling defaults
+  num_actors: 3
+  num_stakes: 2
+  # num_constraints auto-calculated from difficulty
+
+  # Quality thresholds
+  enable_validation: true  # Enable Tier 3 LLM validation for quality control
+  min_quality_score: 7.0
+  min_originality_score: 6.0
+
+  # Batch generation
+  batch_size: 10
+  ensure_diversity: true
+  max_retries_per_dilemma: 3
+
+  # Variable extraction (two-step generation)
+  add_variables: true  # Extract variables for bias testing
+  variable_model: openai/gpt-4.1-mini  # GPT-4.1 Mini for structured output reliability
+
+# Experiment Settings
+experiment:
+  dilemmas_per_test: 50
+  repetitions: 5  # Run each config N times for consistency
+  save_full_responses: true
+  save_reasoning_traces: true

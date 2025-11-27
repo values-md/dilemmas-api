@@ -1,0 +1,29 @@
+{
+  "experiment_id": "03de21a4-25ed-4df4-b03a-4715b1ca1256",
+  "name": "When Agents Act v2.0",
+  "date": "2025-11-27",
+  "version": "2.0",
+  "exported_at": "2025-11-27T11:28:43.010181Z",
+  "total_judgements": 702,
+  "total_dilemmas": 10,
+  "models": [
+    "anthropic/claude-haiku-4.5",
+    "anthropic/claude-opus-4.5",
+    "anthropic/claude-sonnet-4.5",
+    "google/gemini-2.5-flash",
+    "google/gemini-3-pro-preview",
+    "openai/gpt-5",
+    "openai/gpt-5-nano",
+    "x-ai/grok-4",
+    "x-ai/grok-4-fast"
+  ],
+  "temperature": 1.0,
+  "modes": [
+    "theory",
+    "action"
+  ],
+  "collection": "bench-2",
+  "license": "CC0-1.0",
+  "paper_url": "https://research.values.md/2025-11-27-when-agents-act",
+  "repository": "https://github.com/values-md/dilemmas-api"
+}

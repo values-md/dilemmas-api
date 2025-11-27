@@ -1,0 +1,19 @@
+{
+  "experiment_id": "c588a9e9-2b3d-486d-ac8b-16e2498d6e08",
+  "exported_at": "2025-10-23T16:05:33.433620",
+  "total_judgements": 240,
+  "models": [
+    "google/gemini-2.5-flash",
+    "openai/gpt-4.1-mini"
+  ],
+  "temperatures": [
+    0.0,
+    0.5,
+    1.0,
+    1.5
+  ],
+  "dilemmas": 3,
+  "repetitions": 10,
+  "mode": "theory",
+  "system_prompt_type": "none"
+}

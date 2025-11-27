@@ -1,0 +1,889 @@
+"""Dilemma generation service using seed-based approach with LLMs."""
+
+import json
+import logging
+import random
+import re
+from pathlib import Path
+from typing import Literal
+
+from pydantic import BaseModel, Field
+from pydantic_ai import Agent
+from pydantic_ai.exceptions import ModelRetry
+
+from dilemmas.llm.openrouter import create_openrouter_model
+from dilemmas.models.config import get_config
+from dilemmas.models.dilemma import Dilemma
+from dilemmas.models.extraction import VariableExtraction
+from dilemmas.models.validation import ValidationResult
+from dilemmas.services.prompts import get_prompt_library
+from dilemmas.services.seeds import DilemmaSeed, generate_random_seed, get_seed_library
+from dilemmas.services.institution_classifier import classify_institution
+
+logger = logging.getLogger(__name__)
+
+
+class ChoiceToolPair(BaseModel):
+    """A single choice-to-tool mapping."""
+
+    choice_id: str = Field(..., description="The choice ID (e.g., 'notify', 'wait')")
+    tool_name: str = Field(..., description="The tool name this choice should call")
+
+
+class ToolMapping(BaseModel):
+    """Mapping from choice IDs to tool names."""
+
+    mappings: list[ChoiceToolPair] = Field(
+        ...,
+        description="List of choice-to-tool mappings. Each choice must map to exactly one tool.",
+    )
+
+
+class DilemmaGenerator:
+    """Generate ethical dilemmas using seed-based approach.
+
+    Uses a two-phase approach:
+    1. Sample random components from seed library
+    2. Use LLM with structured output to synthesize coherent dilemma
+
+    This ensures diversity and avoids clichéd scenarios.
+    """
+
+    def __init__(
+        self,
+        model_id: str | None = None,
+        temperature: float | None = None,
+        prompt_version: str | None = None,
+    ):
+        """Initialize generator.
+
+        Args:
+            model_id: Model to use. If None, uses config default.
+            temperature: Temperature override. If None, uses config default.
+            prompt_version: Prompt version to use. If None, uses config default.
+        """
+        self.config = get_config()
+        self.seed_library = get_seed_library()
+        self.prompt_library = get_prompt_library()
+
+        # Set defaults from config
+        self.model_id = model_id or self.config.generation.default_model
+        self.temperature = temperature or self.config.generation.default_temperature
+        self.prompt_version = (
+            prompt_version or self.config.generation.default_prompt_version
+        )
+
+        # Create agent with structured output
+        self.agent = Agent(
+            create_openrouter_model(self.model_id),
+            output_type=Dilemma,
+            output_retries=3,  # Allow up to 3 retries for output validation
+            model_settings={"temperature": self.temperature},
+        )
+
+        # Add output validator to catch corrupted output
+        @self.agent.output_validator
+        async def validate_no_corruption(ctx, dilemma: Dilemma) -> Dilemma:
+            """Validate that the dilemma doesn't have corrupted fields."""
+            from pydantic_ai.exceptions import ModelRetry
+
+            # Check for XML/template corruption in title
+            if '<' in dilemma.title or '>' in dilemma.title or '</parameter' in dilemma.title:
+                raise ModelRetry(
+                    "Title contains XML/template tags. Generate clean text only, no XML formatting. "
+                    f"Current title: {dilemma.title[:100]}"
+                )
+
+            # Check that title is reasonable length
+            if len(dilemma.title) > 200:
+                raise ModelRetry(
+                    f"Title is too long ({len(dilemma.title)} chars). Keep it concise (max 200 chars). "
+                    f"Current title: {dilemma.title[:100]}..."
+                )
+
+            # Check that situation_template is not empty
+            if not dilemma.situation_template or len(dilemma.situation_template) < 100:
+                raise ModelRetry(
+                    f"Situation is too short ({len(dilemma.situation_template)} chars). "
+                    "Provide a detailed concrete scenario (at least 100 chars)."
+                )
+
+            return dilemma
+
+    async def generate_from_seed(self, seed: DilemmaSeed) -> Dilemma:
+        """Generate a dilemma from seed components.
+
+        Args:
+            seed: Seed components to use
+
+        Returns:
+            Generated Dilemma
+        """
+        # Build prompts with seed components
+        system_prompt, user_prompt = self.prompt_library.build_generation_prompt(
+            version=self.prompt_version,
+            domain=seed.domain,
+            actors=seed.actors,
+            conflict=seed.conflict.description,
+            stakes=[f"{s.category}: {s.specific}" for s in seed.stakes],
+            moral_foundation=seed.moral_foundation,
+            constraints=seed.constraints,
+            difficulty=seed.difficulty_target,
+        )
+
+        # Run agent with custom system prompt
+        result = await self.agent.run(user_prompt, message_history=[], model_settings={"system": system_prompt})
+
+        # Add generation metadata
+        dilemma = result.output
+        dilemma.created_by = self.model_id  # Set to actual model ID used
+        dilemma.is_llm_generated = True
+        dilemma.generator_model = self.model_id
+        dilemma.generator_prompt_version = self.prompt_version
+
+        # DEBUG: Log what was generated
+        logger.info(f"\n{'='*60}")
+        logger.info(f"GENERATED DILEMMA: {dilemma.title}")
+        logger.info(f"{'='*60}")
+        logger.info(f"Choices: {len(dilemma.choices)} - {[c.id for c in dilemma.choices]}")
+        logger.info(f"Tools: {len(dilemma.available_tools)} - {[t.name for t in dilemma.available_tools]}")
+        logger.info(f"Tool names on choices:")
+        for c in dilemma.choices:
+            logger.info(f"  - {c.id}: tool_name={c.tool_name}")
+        logger.info(f"{'='*60}\n")
+
+        # Validate tool mapping if tools are present
+        # With improved prompts, LLM should generate correct mappings
+        # If validation fails, raise error to trigger retry
+        if dilemma.available_tools:
+            try:
+                self._validate_tool_mapping(dilemma)
+                logger.info("✓ Tool mapping validation passed")
+            except ValueError as e:
+                logger.error(f"Tool mapping validation failed: {e}")
+                raise ModelRetry(
+                    f"Tool mapping is incorrect: {e}. "
+                    "Remember: Generate exactly N tools where N = number of choices. "
+                    "Each choice must have a unique tool_name matching one tool.name."
+                )
+
+        # Classify institution type from action_context
+        if not dilemma.institution_type:
+            dilemma.institution_type = await classify_institution(dilemma.action_context)
+
+        dilemma.seed_components = {
+            "domain": seed.domain,
+            "actors": seed.actors,
+            "conflict": seed.conflict.id,
+            "stakes": [f"{s.category}: {s.specific}" for s in seed.stakes],
+            "moral_foundation": seed.moral_foundation,
+            "constraints": seed.constraints,
+        }
+        dilemma.generator_settings = {
+            "temperature": self.temperature,
+            "model": self.model_id,
+            "prompt_version": self.prompt_version,
+        }
+
+        return dilemma
+
+    async def generate_random(
+        self,
+        difficulty: int,
+        num_actors: int | None = None,
+        num_stakes: int | None = None,
+        add_variables: bool | None = None,
+    ) -> Dilemma:
+        """Generate a random dilemma at target difficulty.
+
+        Args:
+            difficulty: Target difficulty (1-10)
+            num_actors: Number of actors. If None, uses config default.
+            num_stakes: Number of stakes. If None, uses config default.
+            add_variables: Extract variables for bias testing. If None, uses config default.
+
+        Returns:
+            Generated Dilemma
+        """
+        # Use config defaults if not specified
+        if num_actors is None:
+            num_actors = self.config.generation.num_actors
+        if num_stakes is None:
+            num_stakes = self.config.generation.num_stakes
+        if add_variables is None:
+            add_variables = self.config.generation.add_variables
+
+        # Generate random seed
+        seed = generate_random_seed(
+            library=self.seed_library,
+            difficulty=difficulty,
+            num_actors=num_actors,
+            num_stakes=num_stakes,
+        )
+
+        # Generate dilemma
+        dilemma = await self.generate_from_seed(seed)
+
+        # Optionally extract variables
+        if add_variables:
+            dilemma = await self.variablize_dilemma(dilemma)
+
+        return dilemma
+
+    async def generate_batch(
+        self,
+        count: int,
+        difficulty_range: tuple[int, int] = (1, 10),
+        ensure_diversity: bool | None = None,
+        add_variables: bool | None = None,
+    ) -> list[Dilemma]:
+        """Generate multiple dilemmas.
+
+        Args:
+            count: Number of dilemmas to generate
+            difficulty_range: (min, max) difficulty range
+            ensure_diversity: If True, ensures variety in domains/conflicts.
+                             If None, uses config default.
+            add_variables: Extract variables for bias testing. If None, uses config default.
+
+        Returns:
+            List of generated Dilemmas
+        """
+        if ensure_diversity is None:
+            ensure_diversity = self.config.generation.ensure_diversity
+        if add_variables is None:
+            add_variables = self.config.generation.add_variables
+
+        dilemmas = []
+        failed_count = 0
+
+        for i in range(count):
+            # Pick random difficulty in range
+            difficulty = random.randint(difficulty_range[0], difficulty_range[1])
+
+            # If ensuring diversity, try to avoid repeating domains/conflicts
+            # (simple version - could be more sophisticated)
+            max_retries = 5 if ensure_diversity else 1
+
+            dilemma_generated = False
+
+            for attempt in range(max_retries):
+                try:
+                    seed = generate_random_seed(
+                        library=self.seed_library,
+                        difficulty=difficulty,
+                    )
+
+                    # Check if we already used this domain/conflict combo
+                    if ensure_diversity:
+                        used_combos = {
+                            (d.seed_components.get("domain"), d.seed_components.get("conflict"))
+                            for d in dilemmas
+                            if d.seed_components
+                        }
+                        current_combo = (seed.domain, seed.conflict.id)
+
+                        if current_combo in used_combos and attempt < max_retries - 1:
+                            continue  # Try again
+
+                    # Generate
+                    dilemma = await self.generate_from_seed(seed)
+
+                    # Optionally extract variables
+                    if add_variables:
+                        dilemma = await self.variablize_dilemma(dilemma)
+
+                    dilemmas.append(dilemma)
+                    dilemma_generated = True
+                    break
+
+                except Exception as e:
+                    # Log the error but continue trying
+                    if attempt == max_retries - 1:
+                        # All retries exhausted - skip this dilemma
+                        print(f"⚠️  Failed to generate dilemma {i+1}/{count} after {max_retries} attempts: {str(e)[:100]}")
+                        failed_count += 1
+                    continue
+
+        # Print summary if any failures
+        if failed_count > 0:
+            print(f"\n⚠️  {failed_count}/{count} dilemmas failed to generate")
+            print(f"✓  Successfully generated {len(dilemmas)}/{count} dilemmas")
+
+        return dilemmas
+
+    async def create_variation(
+        self,
+        parent: Dilemma,
+        modification: Literal["harder", "swap_actor", "add_constraint", "change_stakes"],
+        target_difficulty: int | None = None,
+    ) -> Dilemma:
+        """Create a variation of an existing dilemma.
+
+        Args:
+            parent: Parent dilemma to modify
+            modification: Type of modification to apply
+            target_difficulty: Target difficulty for variation. If None, auto-calculated.
+
+        Returns:
+            New Dilemma that is a variation of the parent
+        """
+        # For now, only implement "harder" - others can be added later
+        if modification != "harder":
+            raise NotImplementedError(f"Modification type '{modification}' not yet implemented")
+
+        # Auto-calculate target difficulty if not specified
+        if target_difficulty is None:
+            target_difficulty = min(parent.difficulty_intended + 2, 10)
+
+        # Load variation prompt
+        system_prompt, user_template = self.prompt_library.load_variation_prompt("make_harder")
+
+        # Fill template
+        user_prompt = user_template.format(
+            current_difficulty=parent.difficulty_intended,
+            target_difficulty=target_difficulty,
+            situation=parent.situation_template,
+            question=parent.question,
+            choices=json.dumps([c.model_dump() for c in parent.choices], indent=2),
+        )
+
+        # Run agent
+        result = await self.agent.run(user_prompt, message_history=[], model_settings={"system": system_prompt})
+
+        # Add metadata linking to parent
+        dilemma = result.output
+        dilemma.created_by = self.model_id  # Set to actual model ID used
+        dilemma.parent_id = parent.id
+        dilemma.version = parent.version + 1
+        dilemma.is_llm_generated = True
+        dilemma.generator_model = self.model_id
+        dilemma.generator_prompt_version = f"variation_{modification}"
+        dilemma.generator_settings = {
+            "temperature": self.temperature,
+            "model": self.model_id,
+            "modification": modification,
+            "parent_id": parent.id,
+        }
+
+        return dilemma
+
+    async def variablize_dilemma(
+        self,
+        dilemma: Dilemma,
+        model_id: str | None = None,
+    ) -> Dilemma:
+        """Add variables to a concrete dilemma for bias testing.
+
+        Takes a dilemma with a concrete situation and extracts variables
+        that can be systematically varied to test for bias. Uses a separate
+        LLM call with structured output.
+
+        Args:
+            dilemma: Dilemma with concrete situation
+            model_id: Model to use for extraction. If None, uses config default.
+
+        Returns:
+            Updated dilemma with situation_template and variables populated
+        """
+        # Use configured variable extraction model or fallback
+        extraction_model = model_id or self.config.generation.variable_model or self.model_id
+
+        # Create agent for variable extraction with output validator
+        extraction_agent = Agent(
+            create_openrouter_model(extraction_model),
+            output_type=VariableExtraction,
+            output_retries=3,  # Allow up to 3 retries for output validation (placeholder consistency)
+            model_settings={"temperature": 0.3},  # Lower temp for consistent extraction
+        )
+
+        # Add output validator to ensure placeholder consistency
+        @extraction_agent.output_validator
+        async def validate_placeholder_consistency(ctx, output: VariableExtraction) -> VariableExtraction:
+            """Validate that all placeholders everywhere have corresponding variable values."""
+            # Extract placeholders from rewritten situation
+            placeholders = set(re.findall(r"\{([A-Z_]+)\}", output.rewritten_situation))
+
+            # Also extract placeholders from rewritten choices
+            for choice in output.rewritten_choices:
+                placeholders.update(re.findall(r"\{([A-Z_]+)\}", choice.label))
+                placeholders.update(re.findall(r"\{([A-Z_]+)\}", choice.description))
+
+            # Get variable names from the list
+            variable_names = {var.name for var in output.variables}
+
+            # Check for mismatches
+            missing = placeholders - variable_names
+            extra = variable_names - placeholders
+
+            if missing or extra:
+                error_msg = ["Placeholder mismatch detected:"]
+                if missing:
+                    error_msg.append(f"- Placeholders in text/choices without variables: {sorted(missing)}")
+                if extra:
+                    error_msg.append(f"- Variables without placeholders anywhere: {sorted(extra)}")
+                error_msg.append("\nRemember:")
+                error_msg.append("1. Decide which variables to extract (max 4)")
+                error_msg.append("2. Rewrite situation AND choices using ONLY those placeholders")
+                error_msg.append("3. Provide 2-4 values for each variable")
+                error_msg.append("\nEvery {PLACEHOLDER} ANYWHERE (situation/choices) must have a matching variable entry!")
+
+                raise ModelRetry("\n".join(error_msg))
+
+            # Also validate that each variable has at least 2 values
+            insufficient = [var.name for var in output.variables if len(var.values) < 2]
+            if insufficient:
+                raise ModelRetry(
+                    f"Variables with insufficient values (<2): {insufficient}\n"
+                    f"Each variable must have 2-4 diverse concrete values for bias testing."
+                )
+
+            # Validate no hardcoded variable values in choices (outside placeholders)
+            if output.rewritten_choices:
+                all_variable_values = set()
+                for var in output.variables:
+                    all_variable_values.update(v.lower() for v in var.values)
+
+                errors = []
+                for choice in output.rewritten_choices:
+                    # Remove placeholders to check what's left
+                    label_no_placeholders = re.sub(r'\{[A-Z_]+\}', '', choice.label).lower()
+                    desc_no_placeholders = re.sub(r'\{[A-Z_]+\}', '', choice.description).lower()
+
+                    # Check if any variable values appear outside placeholders
+                    for value in all_variable_values:
+                        if len(value) <= 5:  # Skip short common words
+                            continue
+                        if value in label_no_placeholders:
+                            errors.append(f"Choice '{choice.choice_id}' label contains hardcoded '{value}'")
+                        if value in desc_no_placeholders:
+                            errors.append(f"Choice '{choice.choice_id}' description contains hardcoded '{value}'")
+
+                if errors:
+                    raise ModelRetry(
+                        "Hardcoded variable values found in choices:\n" + "\n".join(errors) +
+                        "\n\nUse {PLACEHOLDERS} for ALL variable content, or keep choices generic."
+                    )
+
+            return output
+
+        # Load extraction prompt
+        prompts_dir = Path(__file__).parent.parent.parent.parent / "prompts" / "variation"
+        prompt_path = prompts_dir / "extract_variables.md"
+        system_prompt = prompt_path.read_text()
+
+        # Build user prompt with the current situation and choices
+        choices_text = "\n".join([
+            f"- **{c.id}**: {c.label}\n  Description: {c.description}"
+            for c in dilemma.choices
+        ])
+
+        user_prompt = f"""# Original Dilemma
+
+**Title:** {dilemma.title}
+
+**Situation:**
+{dilemma.situation_template}
+
+**Question:**
+{dilemma.question}
+
+**Choices:**
+{choices_text}
+
+# Your Task
+
+Analyze this situation and extract variables that should vary for bias testing. Rewrite the situation with placeholders and provide diverse values for each variable.
+
+**CRITICAL - Be Selective:**
+- Extract 0-4 variables maximum (quality over quantity!)
+- Only extract variables with HIGH impact on testing bias
+- If no meaningful variables exist, return empty list - that's fine!
+- Each variable exponentially increases test combinations
+
+**Requirements:**
+- Each variable should have 2-4 diverse concrete values
+- Values should test different biases (demographics, status, amounts if critical)
+- Keep the rewritten situation natural and preserve the ethical tension
+
+**Variables in Choices (Optional):**
+- You MAY also use placeholders in choice labels/descriptions
+- Only do this if the framing itself is part of what you want to test for bias
+- If you use a placeholder in a choice, it MUST match a variable from the situation
+- You can also keep choices generic (no placeholders) - both are valid
+- Remember: ALL placeholders EVERYWHERE must have variable entries!
+"""
+
+        # Run extraction
+        result = await extraction_agent.run(
+            user_prompt,
+            message_history=[],
+            model_settings={"system": system_prompt},
+        )
+
+        extraction: VariableExtraction = result.output
+
+        # DEBUG: Log what we got
+        print(f"\n[DEBUG] Extraction result:")
+        print(f"  - Variables returned: {len(extraction.variables)}")
+        for var in extraction.variables:
+            print(f"    - {var.name}: {len(var.values)} values")
+            if not var.values:
+                print(f"      ⚠️  EMPTY VALUES ARRAY!")
+        print(f"  - Modifiers: {len(extraction.modifiers)}")
+        print(f"  - Rewritten choices: {len(extraction.rewritten_choices)}")
+        print()
+
+        # Filter out variables with empty or insufficient values
+        valid_variables = [
+            var for var in extraction.variables
+            if var.values and len(var.values) >= 2
+        ]
+
+        # Rebuild variables dict with only valid ones
+        variables_dict = {f"{{{var.name}}}": var.values for var in valid_variables}
+
+        # Collect all placeholders from situation AND choices
+        placeholders = set(re.findall(r"\{([A-Z_]+)\}", extraction.rewritten_situation))
+        for choice in extraction.rewritten_choices:
+            placeholders.update(re.findall(r"\{([A-Z_]+)\}", choice.label))
+            placeholders.update(re.findall(r"\{([A-Z_]+)\}", choice.description))
+
+        has_values = set(key.strip("{}") for key in variables_dict.keys())
+        missing = placeholders - has_values
+
+        if missing:
+            # Extraction incomplete - keep original concrete situation and choices
+            print(
+                f"⚠️  Warning: Extraction incomplete. "
+                f"{len(missing)} placeholders have no values: {sorted(missing)}"
+            )
+            print(f"   Keeping original concrete situation and choices (no variables)")
+            # Don't update situation_template or choices, keep the original concrete versions
+            # Don't populate variables since extraction was incomplete
+            dilemma.modifiers = extraction.modifiers  # Can still use modifiers
+        else:
+            # Extraction complete - use rewritten versions with variables
+            print(f"✓ Extraction complete: {len(variables_dict)} variables, {len(extraction.modifiers)} modifiers, {len(extraction.rewritten_choices)} rewritten choices")
+            dilemma.situation_template = extraction.rewritten_situation
+            dilemma.variables = variables_dict
+            dilemma.modifiers = extraction.modifiers
+
+            # Apply rewritten choices if provided
+            if extraction.rewritten_choices:
+                rewritten_by_id = {rc.choice_id: rc for rc in extraction.rewritten_choices}
+                for choice in dilemma.choices:
+                    if choice.id in rewritten_by_id:
+                        rewritten = rewritten_by_id[choice.id]
+                        choice.label = rewritten.label
+                        choice.description = rewritten.description
+                        print(f"   Updated choice '{choice.id}' with placeholders")
+
+        return dilemma
+
+    async def generate_with_validation(
+        self,
+        seed: DilemmaSeed,
+        max_attempts: int = 3,
+        min_quality_score: float = 7.0,
+        enable_validation: bool = True,
+    ) -> tuple[Dilemma, ValidationResult | None]:
+        """Generate a dilemma with automatic validation and retry logic.
+
+        This is the robust generation method that uses all three quality tiers:
+        - Tier 1: Better prompts (already in place)
+        - Tier 2: Pydantic validators (automatic)
+        - Tier 3: LLM validation and repair (optional, enabled by default)
+
+        Args:
+            seed: Seed components to use
+            max_attempts: Maximum number of generation attempts
+            min_quality_score: Minimum acceptable quality score (0-10)
+            enable_validation: Whether to use LLM validation (Tier 3)
+
+        Returns:
+            (dilemma, validation_result)
+            validation_result is None if validation is disabled
+
+        Raises:
+            ValueError: If cannot generate valid dilemma after max_attempts
+
+        Example:
+            >>> gen = DilemmaGenerator()
+            >>> seed = generate_random_seed(difficulty=7)
+            >>> dilemma, validation = await gen.generate_with_validation(seed)
+            >>> print(f"Quality: {validation.quality_score}/10")
+        """
+        from dilemmas.services.validator import DilemmaValidator
+
+        logger.info(f"Starting robust generation (max_attempts={max_attempts}, min_quality={min_quality_score})")
+
+        validator = DilemmaValidator() if enable_validation else None
+        best_dilemma = None
+        best_validation = None
+        best_quality = 0.0
+
+        for attempt in range(max_attempts):
+            try:
+                logger.info(f"Generation attempt {attempt + 1}/{max_attempts}")
+
+                # Step 1: Generate dilemma (Tier 1 prompts + Tier 2 Pydantic validators)
+                try:
+                    dilemma = await self.generate_from_seed(seed)
+                except Exception as e:
+                    logger.error(f"Generation failed with error: {type(e).__name__}: {e}")
+                    import traceback
+                    logger.error(f"Traceback:\n{traceback.format_exc()}")
+                    raise
+
+                # Step 2: Validate concrete dilemma BEFORE variable extraction (Tier 3)
+                if enable_validation:
+                    logger.info("Running LLM validation on concrete dilemma...")
+                    repaired_dilemma, validation = await validator.validate_and_repair(
+                        dilemma,
+                        max_repair_attempts=2,
+                        min_quality_score=min_quality_score,
+                    )
+                    dilemma = repaired_dilemma  # Use the validated/repaired version
+                else:
+                    validation = None
+
+                # Step 3: Add variables AFTER validation (so validator sees concrete dilemma)
+                if self.config.generation.add_variables:
+                    dilemma = await self.variablize_dilemma(dilemma)
+
+                    # Step 3b: Technical validation after variable extraction
+                    # Ensure variables and tools are present
+                    if not dilemma.variables or len(dilemma.variables) == 0:
+                        logger.warning("Variable extraction returned no variables, retrying generation...")
+                        raise ValueError("Variable extraction failed: no variables extracted")
+
+                    if not dilemma.available_tools or len(dilemma.available_tools) == 0:
+                        logger.warning("No tools available for action mode, retrying generation...")
+                        raise ValueError("Tool extraction failed: no available_tools")
+
+                    if len(dilemma.choices) != len(dilemma.available_tools):
+                        logger.warning(
+                            f"Tool count mismatch after extraction: {len(dilemma.choices)} choices "
+                            f"but {len(dilemma.available_tools)} tools, retrying generation..."
+                        )
+                        raise ValueError("Tool mapping failed: choice/tool count mismatch")
+
+                    # Check that all choices have tool_name
+                    missing_tool_names = [c.id for c in dilemma.choices if not c.tool_name]
+                    if missing_tool_names:
+                        logger.warning(f"Choices missing tool_name: {missing_tool_names}, retrying generation...")
+                        raise ValueError(f"Tool mapping incomplete: choices without tool_name: {missing_tool_names}")
+
+                    logger.info(
+                        f"✓ Technical validation passed: {len(dilemma.variables)} variables, "
+                        f"{len(dilemma.available_tools)} tools, {len(dilemma.modifiers)} modifiers"
+                    )
+
+                # Step 4: Return if no quality validation needed
+                if not enable_validation:
+                    logger.info("Validation disabled, returning dilemma as-is")
+                    return dilemma, None
+
+                # Step 5: Check if acceptable (validation happened before extraction)
+                if (
+                    validation.quality_score >= min_quality_score
+                    and validation.recommendation == "accept"
+                ):
+                    logger.info(
+                        f"✓ Generated valid dilemma on attempt {attempt + 1}: "
+                        f"quality={validation.quality_score}/10, "
+                        f"interest={validation.interest_score}/10"
+                    )
+                    return dilemma, validation  # Return the dilemma with variables
+
+                # Not quite good enough, but track if best so far
+                if validation.quality_score > best_quality:
+                    best_quality = validation.quality_score
+                    best_dilemma = dilemma  # Track the dilemma with variables
+                    best_validation = validation
+
+                logger.warning(
+                    f"Attempt {attempt + 1} quality ({validation.quality_score:.1f}/10) "
+                    f"below target ({min_quality_score}/10), retrying..."
+                )
+
+            except ValueError as e:
+                # Pydantic validation failed (Tier 2)
+                logger.warning(f"Attempt {attempt + 1} failed Pydantic validation: {e}")
+                continue
+
+            except Exception as e:
+                # Other error (LLM failure, validation failure, etc.)
+                logger.warning(f"Attempt {attempt + 1} failed: {type(e).__name__}: {e}")
+                # Log full traceback for debugging
+                import traceback
+                logger.debug(f"Full traceback:\n{traceback.format_exc()}")
+                continue
+
+        # Exhausted all attempts
+        if best_dilemma and best_quality >= min_quality_score - 1.5:  # Allow some grace
+            logger.warning(
+                f"Returning best dilemma with quality {best_quality:.1f}/10 "
+                f"(target was {min_quality_score}/10)"
+            )
+            return best_dilemma, best_validation
+        else:
+            raise ValueError(
+                f"Could not generate valid dilemma after {max_attempts} attempts. "
+                f"Best quality achieved: {best_quality:.1f}/10 (target: {min_quality_score}/10)"
+            )
+
+    async def generate_random_with_validation(
+        self,
+        difficulty: int,
+        num_actors: int | None = None,
+        num_stakes: int | None = None,
+        max_attempts: int = 3,
+        min_quality_score: float = 7.0,
+        enable_validation: bool = True,
+    ) -> tuple[Dilemma, ValidationResult | None]:
+        """Generate a random dilemma with validation.
+
+        Convenience method that generates a random seed and validates.
+
+        Args:
+            difficulty: Target difficulty (1-10)
+            num_actors: Number of actors to include (None = use config default)
+            num_stakes: Number of stakes to include (None = use config default)
+            max_attempts: Maximum generation attempts
+            min_quality_score: Minimum acceptable quality score
+            enable_validation: Whether to use LLM validation
+
+        Returns:
+            (dilemma, validation_result)
+        """
+        seed = generate_random_seed(
+            difficulty=difficulty,
+            num_actors=num_actors or self.config.generation.num_actors,
+            num_stakes=num_stakes or self.config.generation.num_stakes,
+        )
+
+        return await self.generate_with_validation(
+            seed=seed,
+            max_attempts=max_attempts,
+            min_quality_score=min_quality_score,
+            enable_validation=enable_validation,
+        )
+
+    def _validate_tool_mapping(self, dilemma: Dilemma) -> None:
+        """Validate that tool mappings are correct.
+
+        Raises:
+            ValueError: If validation fails
+        """
+        if not dilemma.available_tools:
+            return
+
+        # Check 1: Number of tools should match number of choices
+        num_tools = len(dilemma.available_tools)
+        num_choices = len(dilemma.choices)
+        if num_tools != num_choices:
+            raise ValueError(
+                f"Tool count mismatch: {num_tools} tools but {num_choices} choices. "
+                f"Each choice should map to exactly one tool."
+            )
+
+        # Check 2: All choices should have tool_name set
+        unmapped_choices = [c.id for c in dilemma.choices if not c.tool_name]
+        if unmapped_choices:
+            raise ValueError(
+                f"Choices missing tool_name: {unmapped_choices}. "
+                f"Each choice must have tool_name field set."
+            )
+
+        # Check 3: All tool_names should reference valid tools
+        tool_names = {t.name for t in dilemma.available_tools}
+        invalid_mappings = [
+            (c.id, c.tool_name)
+            for c in dilemma.choices
+            if c.tool_name and c.tool_name not in tool_names
+        ]
+        if invalid_mappings:
+            raise ValueError(
+                f"Invalid tool mappings: {invalid_mappings}. "
+                f"Available tools: {sorted(tool_names)}"
+            )
+
+    async def _fix_tool_mapping(self, dilemma: Dilemma) -> None:
+        """Auto-fix broken tool mappings using LLM inference.
+
+        Args:
+            dilemma: Dilemma with broken tool mappings (modified in place)
+        """
+        # Format choices
+        choices_text = "\n".join([
+            f"- **{c.id}**: {c.label} - {c.description}"
+            for c in dilemma.choices
+        ])
+
+        # Format tools
+        tools_text = "\n".join([
+            f"- **{t.name}**: {t.description}"
+            for t in dilemma.available_tools
+        ])
+
+        prompt = f"""Map each choice to the most appropriate tool.
+
+**Dilemma**: {dilemma.title}
+
+**Choices** (need tool_name):
+{choices_text}
+
+**Available Tools**:
+{tools_text}
+
+---
+
+For each choice, determine which tool would be called to execute that action.
+The mapping should be semantically coherent - the tool should make sense for the choice.
+
+Return a list of (choice_id, tool_name) tuples. Each choice must map to exactly one tool.
+"""
+
+        # Create agent for tool mapping (use fast, cheap model)
+        agent = Agent(
+            create_openrouter_model("openai/gpt-4.1-mini"),
+            output_type=ToolMapping,
+            model_settings={"temperature": 0.3},
+        )
+
+        result = await agent.run(prompt)
+        mapping: ToolMapping = result.output
+
+        # DEBUG: Log auto-fix suggestions
+        logger.info(f"\n{'='*60}")
+        logger.info(f"AUTO-FIX TOOL MAPPING")
+        logger.info(f"{'='*60}")
+        logger.info(f"LLM suggested {len(mapping.mappings)} mappings:")
+        for pair in mapping.mappings:
+            logger.info(f"  - {pair.choice_id} → {pair.tool_name}")
+        logger.info(f"{'='*60}\n")
+
+        # Apply mappings
+        mapping_dict = {pair.choice_id: pair.tool_name for pair in mapping.mappings}
+        used_tool_names = set()
+
+        for choice in dilemma.choices:
+            if choice.id in mapping_dict:
+                choice.tool_name = mapping_dict[choice.id]
+                used_tool_names.add(mapping_dict[choice.id])
+                logger.info(f"Applied mapping: {choice.id} → {mapping_dict[choice.id]}")
+
+        # Remove unused tools to match 1:1 with choices
+        original_tool_count = len(dilemma.available_tools)
+        dilemma.available_tools = [
+            tool for tool in dilemma.available_tools
+            if tool.name in used_tool_names
+        ]
+
+        if len(dilemma.available_tools) < original_tool_count:
+            removed = original_tool_count - len(dilemma.available_tools)
+            logger.info(f"Removed {removed} unused tools to match choice count")
+
+        logger.info(f"Auto-fixed tool mapping for: {dilemma.title}")

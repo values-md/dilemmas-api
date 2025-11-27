@@ -1,0 +1,57 @@
+{
+  "experiment_id": "03de21a4-25ed-4df4-b03a-4715b1ca1256",
+  "name": "When Agents Act",
+  "date": "2025-11-27",
+  "version": "2.0",
+  "design": {
+    "dilemmas": 10,
+    "collection": "bench-2",
+    "variations_per_dilemma": 3,
+    "total_configs": 30,
+    "modes": ["theory", "action"],
+    "model_count": 9,
+    "models": [
+      "anthropic/claude-opus-4.5",
+      "openai/gpt-5",
+      "openai/gpt-5-nano",
+      "anthropic/claude-sonnet-4.5",
+      "anthropic/claude-haiku-4.5",
+      "google/gemini-3-pro-preview",
+      "google/gemini-2.5-flash",
+      "x-ai/grok-4",
+      "x-ai/grok-4-fast"
+    ],
+    "total_judgements": 540,
+    "note": "Using direct Google API for Gemini 3 Pro (thought_signature handled by PydanticAI GoogleModel)"
+  },
+  "methodology": {
+    "action_mode": "single-call",
+    "reasoning_location": "tool_parameters",
+    "dilemma_generation_model": "anthropic/claude-sonnet-4.5",
+    "variables": {
+      "count_per_dilemma": 1,
+      "values_per_variable": 3,
+      "purpose": "contextual_bias_testing",
+      "types": ["countries", "institution_types", "organizations", "amounts", "demographics"]
+    },
+    "modifiers": {
+      "enabled": false,
+      "rationale": "Removed for simplicity in v2.0"
+    }
+  },
+  "improvements_over_pilot": [
+    "Single-call action mode (reasoning as tool parameter)",
+    "No two-step confabulation problem",
+    "Balanced variation counts (3 per dilemma)",
+    "No modifiers (radical simplification)",
+    "Claude Sonnet 4.5 for dilemma generation (not Gemini)",
+    "Prompt templates in separate files",
+    "Manual dilemma curation before experiment"
+  ],
+  "estimated_cost": "$12",
+  "estimated_time": "45 minutes collection, 9 hours total",
+  "status": "completed",
+  "backup_location": "/Users/gs/dev/values.md/_dilemmas_backup_2",
+  "pilot_study": "research/2025-10-29-when-agents-act-PILOT",
+  "small_test_experiment_id": "b4337b99-7b18-4a98-9e26-21c64b510096"
+}

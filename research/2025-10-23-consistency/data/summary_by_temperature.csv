@@ -1,0 +1,5 @@
+temperature,avg_choice_consistency_pct,avg_confidence_mean,avg_confidence_stddev,avg_response_time_ms
+0.0,98.3,8.55,1.02,2666.0
+0.5,95.0,8.71,0.54,2711.0
+1.0,100.0,8.77,0.21,2592.0
+1.5,98.3,8.7,0.54,2574.0

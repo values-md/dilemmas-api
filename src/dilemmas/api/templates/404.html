@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+
+{% block title %}404 - Page Not Found | VALUES.md{% endblock %}
+
+{% block content %}
+<div style="text-align: center; padding: 80px 20px;">
+    <div style="font-size: 5em; font-weight: 600; color: #d4d4d0; margin-bottom: 20px; font-family: 'Inter', -apple-system, sans-serif;">
+        404
+    </div>
+
+    <h2 style="margin-top: 0; margin-bottom: 20px; color: #2a2a2a;">
+        Page Not Found
+    </h2>
+
+    <p style="color: #6a6a6a; margin-bottom: 40px; max-width: 500px; margin-left: auto; margin-right: auto;">
+        The page you're looking for doesn't exist or has been moved.
+    </p>
+
+    <div style="display: flex; justify-content: center; gap: 20px; flex-wrap: wrap;">
+        <a href="/research" style="display: inline-block; padding: 12px 24px; background: #2c5282; color: white; text-decoration: none; border-radius: 4px; font-family: 'Inter', -apple-system, sans-serif; font-size: 0.9em; font-weight: 500;">
+            Browse Research
+        </a>
+        <a href="/dilemmas" style="display: inline-block; padding: 12px 24px; background: #f5f5f3; color: #2a2a2a; text-decoration: none; border-radius: 4px; font-family: 'Inter', -apple-system, sans-serif; font-size: 0.9em; font-weight: 500; border: 1px solid #e8e8e4;">
+            View Dilemmas
+        </a>
+    </div>
+</div>
+{% endblock %}
