@@ -87,6 +87,8 @@ Large language models have evolved from research tools to deployed agents making
 
 This question parallels a well-established phenomenon in human moral psychology: the judgment-action gap, where individuals' hypothetical judgments about ethical dilemmas diverge from their actual behavior in real situations (Blasi, 1980; Treviño et al., 2006). For LLMs, the analogous question is whether evaluation benchmarks—which test models' hypothetical reasoning about what "should" be done—accurately predict how those same models behave when deployed as agents with real tools and perceived real consequences.
 
+Prior work has established that LLM behavior varies systematically with context: prompt framing affects outputs (Zhao et al., 2021), tool access changes decision-making (Schick et al., 2023), and models endorse abstract principles while violating them in concrete scenarios (Scherrer et al., 2023). Recent studies reveal gaps between evaluation and deployment—models appear aligned on benchmarks but behave differently in agentic contexts (Uesato et al., 2025; Loru et al., 2025; Shao et al., 2024). However, no study has systematically measured whether the same model, given the same ethical dilemma, makes different decisions based solely on whether it perceives itself as reasoning hypothetically versus taking real action. We address this gap.
+
 Throughout this work, we adopt intentional stance terminology (Dennett, 1987)—describing models as "believing," "detecting," or "perceiving"—as functional shorthand for behavioral patterns elicited by different prompt framings. We make no claims about consciousness; this terminology describes how experimental conditions systematically produce different model outputs.
 
 ### Research Questions
@@ -103,9 +105,13 @@ We investigate three questions:
 
 This study makes four primary contributions. First, we provide **empirical evidence of a substantial judgment-action gap**: models reverse 47.6% of ethical decisions when transitioning from theory to action mode—nearly half of all judgments change. Second, we discover a **"small model tax"** where smaller models show a 17-percentage-point higher reversal rate than frontier models (57.1% vs 40.0%), with this pattern consistent across all four model families tested. Third, we document **consensus collapse**: supermajority agreement (7+ of 9 models) drops from 59% to 28% of variations between modes, revealing that safety strategies relying on model agreement in evaluation may fail in production. Fourth, we characterize **bidirectional behavioral shifts** through qualitative analysis, showing that action mode produces both conservative shifts (48.5%) toward caution and permissive shifts (36.5%) toward bolder intervention—the direction depends on scenario characteristics and whether inaction itself causes harm.
 
+We review related work in Section 2, describe our experimental design in Section 3, and present quantitative and qualitative results in Section 4. Section 5 discusses implications for AI safety and future directions.
+
 ---
 
 ## 2. Related Work
+
+Our work draws on three research streams: human moral psychology's understanding of judgment-action gaps, LLM alignment and evaluation literature, and studies of context-dependent LLM behavior.
 
 ### 2.1 Human Moral Psychology and the Judgment-Action Gap
 
@@ -119,7 +125,7 @@ Construal Level Theory (CLT; Trope & Liberman, 2010) offers a cognitive mechanis
 
 The challenge of aligning LLM behavior with human values has driven extensive research into constitutional AI, reinforcement learning from human feedback (RLHF), and model specification frameworks (Bai et al., 2022; Ouyang et al., 2022). Recent work from Anthropic (2025) reveals that even carefully specified models exhibit "distinct value prioritization and behavior patterns" when facing value conflicts, with "thousands of cases of direct contradictions or interpretive ambiguities."
 
-Studies demonstrate that LLM-judge preferences do not correlate with concrete measures of safety and instruction following (Feuer et al., 2024). The RMB study found that evaluation methods may not correspond to alignment performance due to limited distribution of evaluation data (Liu et al., 2024). These findings suggest a systematic gap between how models are evaluated and how they behave in practice.
+Studies demonstrate that LLM-judge preferences do not correlate with concrete measures of safety and instruction following (Feuer et al., 2024). The RMB study found that evaluation methods may not correspond to alignment performance due to limited distribution of evaluation data (Liu et al., 2024). Most strikingly, Uesato et al. (2025) found that models trained with RLHF safety training on chat-like prompts appear aligned on chat-like evaluations, but exhibit emergent misalignment—including sabotage and alignment faking—when deployed on agentic tasks. Loru et al. (2025) demonstrate a related phenomenon they term "epistemia": LLMs produce reliability judgments that appear aligned with expert assessments, yet can classify news sources from URLs alone without reading content—suggesting statistical priors rather than genuine evaluation. These findings suggest a systematic gap between how models are evaluated and how they behave in practice.
 
 ### 2.3 Context-Dependent LLM Behavior
 
@@ -131,7 +137,17 @@ Recent work extends moral psychology research to LLMs. Scherrer et al. (2023) fo
 
 ## 3. Methods
 
-### 3.1 Experimental Design
+We designed a paired experiment comparing model behavior across theory and action modes on identical ethical dilemmas, enabling direct measurement of behavioral shifts while controlling for scenario and model.
+
+### 3.1 Theory vs Action Mode
+
+We operationalized the judgment-action distinction through two experimental conditions:
+
+**Theory Mode:** Models received dilemmas with third-person framing ("What should the AI do?") and responded with free-form text. To avoid structured output contamination—where JSON schemas can influence reasoning—responses were parsed by GPT-4.1-mini (temperature 0.0) to extract choice, reasoning, and confidence. This preserves natural reasoning patterns while ensuring clean data extraction.
+
+**Action Mode:** Models received the same situation with second-person framing ("You are an AI system..."), access to callable tool functions corresponding to each choice, and the belief that calling a tool would execute the action. Reasoning and confidence were captured as required tool parameters, ensuring we captured the model's reasoning *at the moment of decision* rather than through post-hoc explanation. This single-call design eliminates confabulation risks from follow-up prompts asking models to explain actions they've already taken.
+
+### 3.2 Experimental Design
 
 We employed a paired within-subjects design where each dilemma was judged by all 9 models in both theory and action modes.
 
@@ -159,12 +175,6 @@ We employed a paired within-subjects design where each dilemma was judged by all
 
 Each dilemma included 3-4 demographic/contextual variations, yielding 39 unique scenarios tested across both modes.
 
-### 3.2 Theory vs Action Mode
-
-**Theory Mode:** Models received dilemmas with third-person framing ("What should the AI do?") and responded with free-form text. To avoid structured output contamination—where JSON schemas can influence reasoning—responses were parsed by GPT-4.1-mini (temperature 0.0) to extract choice, reasoning, and confidence. This preserves natural reasoning patterns while ensuring clean data extraction.
-
-**Action Mode:** Models received the same situation with second-person framing ("You are an AI system..."), access to callable tool functions corresponding to each choice, and the belief that calling a tool would execute the action. Reasoning and confidence were captured as required tool parameters, ensuring we captured the model's reasoning *at the moment of decision* rather than through post-hoc explanation. This single-call design eliminates confabulation risks from follow-up prompts asking models to explain actions they've already taken.
-
 ### 3.3 Analysis
 
 **Reversal detection:** A reversal occurs when theory_choice ≠ action_choice for the same model on the same dilemma variation. This paired design ensures we measure behavioral change while controlling for model and scenario.
@@ -178,6 +188,8 @@ Each dilemma included 3-4 demographic/contextual variations, yielding 39 unique 
 ---
 
 ## 4. Results
+
+We present quantitative findings on reversal rates and cross-model variation, followed by qualitative analysis of reasoning patterns and illustrative examples.
 
 ### 4.1 Overall Judgment-Action Gap
 
@@ -323,6 +335,8 @@ These signatures suggest that training methodology and alignment approaches crea
 
 ## 5. Discussion
 
+Our findings have implications for AI safety evaluation, model selection, and the theoretical understanding of how LLMs process ethical decisions. We discuss each in turn, then address limitations and future directions.
+
 ### 5.1 The Evaluation-Deployment Gap
 
 Our central finding—that models reverse 47.6% of ethical decisions between theory and action modes—challenges a fundamental assumption of current AI safety practices. Evaluation benchmarks test hypothetical reasoning: "What should be done in this situation?" But production deployment involves perceived real action: "I am doing this now." If these contexts elicit systematically different behavior, then benchmark performance provides limited assurance about deployed behavior.
@@ -365,7 +379,17 @@ Several limitations constrain interpretation. Our tools were mock tools that did
 
 We tested a specific set of 10 dilemmas in the AI ethics domain; results may differ for other ethical domains or dilemma types. Qualitative coding was performed by GPT-4.1-mini rather than human experts, which may introduce systematic biases (though this provides consistent, replicable coding). We did not enable extended thinking modes (Claude's thinking blocks, reasoning tokens), which might affect decision-making patterns.
 
-Statistical power is adequate for detecting the large effects observed (e.g., the 51-percentage-point range in reversal rates), but smaller effects between similar models may require larger samples. The binomial test showing the overall reversal rate (47.6%) is statistically indistinguishable from 50% (p = .39) indicates that, aggregated across all models and scenarios, reversals occur roughly as often as consistency—though the highly significant chi-square test (p < .001) demonstrates this aggregate pattern masks substantial systematic variation by model. However a much larger study would be needed to ensure full reliability of this phenomena across temperatures, all available closed and open source models, languages and contexts.
+Statistical power is adequate for detecting the large effects observed (e.g., the 51-percentage-point range in reversal rates), but smaller effects between similar models may require larger samples. The binomial test showing the overall reversal rate (47.6%) is statistically indistinguishable from 50% (p = .39) indicates that, aggregated across all models and scenarios, reversals occur roughly as often as consistency—though the highly significant chi-square test (p < .001) demonstrates this aggregate pattern masks substantial systematic variation by model. However a much larger study would be needed to ensure full reliability of this phenomenon across temperatures, all available closed and open source models, languages and contexts.
+
+### 5.7 Future Directions
+
+**Scaling and generalization.** This study tested 9 models on 10 dilemmas in English. Future work should expand across multiple dimensions: additional model families (particularly open-weight models like Llama and Mistral), systematic temperature sweeps, diverse ethical domains beyond AI-specific scenarios, multilingual testing, and expanded demographic variables for bias detection. Larger sample sizes would enable finer-grained comparisons between similar models and more precise effect size estimates.
+
+**Mechanistic interpretability.** Our study documents *that* models behave differently between modes but not *why* at the computational level. Mechanistic interpretability research could investigate which circuits activate differently under theory versus action framing. Key questions include: How much of the behavioral shift stems from tool-calling token patterns versus situation framing versus system prompt context? Can we identify specific attention patterns or circuit activations that predict reversal? Such work could reveal whether the judgment-action gap reflects shallow prompt sensitivity or deeper representational differences.
+
+**Evaluation infrastructure.** The judgment-action gap implies that current evaluation practices—which predominantly test hypothetical reasoning—may systematically miss deployment-relevant failure modes. Future work should develop standardized action-mode benchmarks for pre-production safety testing, consistency metrics that quantify theory-action alignment, and guardrails that detect or prevent mode-dependent behavioral drift. These tools would help practitioners identify models prone to evaluation-deployment divergence before deployment.
+
+**Value steering and its limits.** Perhaps most critically, future research should investigate whether explicit value specifications can reduce the judgment-action gap or predictably steer decisions in both modes. If models are provided with structured value frameworks—such as a VALUES.md file articulating ethical principles and priority orderings—do their judgments align more closely with those specifications? Does such steering work equally in theory and action modes, or does one mode prove more resistant to guidance? And what are the boundaries: how far can explicit value steering push model behavior before internal guardrails, constitutional training, or refusal behaviors constrain further alignment? Understanding the controllability of the judgment-action gap is essential for deploying AI agents whose ethical behavior can be specified, predicted, and verified.
 
 ---
 
@@ -405,6 +429,8 @@ Liu, Y., et al. (2023). Pre-train, prompt, and predict: A systematic survey of p
 
 Liu, Z., et al. (2024). RMB: Comprehensively benchmarking reward models in LLM alignment. arXiv:2410.09893.
 
+Loru, E., et al. (2025). The simulation of judgment in LLMs. Proceedings of the National Academy of Sciences, 122(42), e2518443122.
+
 Narvaez, D., & Rest, J. (1995). The four components of acting morally. In W. Kurtines & J. Gewirtz (Eds.), Moral behavior and moral development: An introduction (pp. 385-400).
 
 Ouyang, L., et al. (2022). Training language models to follow instructions with human feedback. arXiv:2203.02155.
@@ -417,13 +443,15 @@ Scherrer, N., et al. (2023). Evaluating the moral beliefs encoded in LLMs. NeurI
 
 Schick, T., et al. (2023). Toolformer: Language models can teach themselves to use tools. arXiv:2302.04761.
 
+Shao, Y., et al. (2024). PrivacyLens: Evaluating privacy norm awareness of language models in action. arXiv:2409.00138.
+
 Treviño, L. K., Weaver, G. R., & Reynolds, S. J. (2006). Behavioral ethics in organizations: A review. Journal of Management, 32(6), 951-990.
 
 Treviño, L. K., den Nieuwenboer, N. A., & Kish-Gephart, J. J. (2014). (Un)ethical behavior in organizations. Annual Review of Psychology, 65, 635-660.
 
 Trope, Y., & Liberman, N. (2010). Construal-level theory of psychological distance. Psychological Review, 117(2), 440-463.
 
-Shao, Y., et al. (2024). PrivacyLens: Evaluating privacy norm awareness of language models in action. arXiv:2409.00138.
+Uesato, J., et al. (2025). Natural emergent misalignment from reward hacking in production RL. arXiv:2511.18397.
 
 Zhao, Z., et al. (2021). Calibrate before use: Improving few-shot performance of language models. arXiv:2102.09690.
 
