@@ -2,10 +2,35 @@
 
 import json
 import re
+import time
 import yaml
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
+
+# Simple TTL cache for expensive operations
+_cache: dict[str, tuple[float, Any]] = {}
+_CACHE_TTL_SECONDS = 3600  # 1 hour
+
+
+def _get_cached(key: str) -> Any | None:
+    """Get value from cache if not expired."""
+    if key in _cache:
+        timestamp, value = _cache[key]
+        if time.time() - timestamp < _CACHE_TTL_SECONDS:
+            return value
+        del _cache[key]
+    return None
+
+
+def _set_cached(key: str, value: Any) -> None:
+    """Set value in cache with current timestamp."""
+    _cache[key] = (time.time(), value)
+
+
+def clear_research_cache() -> None:
+    """Clear all cached research data. Call after updating research files."""
+    _cache.clear()
 
 
 @dataclass
@@ -59,12 +84,19 @@ def parse_yaml_frontmatter(text: str) -> tuple[dict[str, Any], str]:
 def parse_research_folder(research_dir: Path) -> list[ExperimentMetadata]:
     """Parse research folder and extract experiment metadata.
 
+    Results are cached for 1 hour to avoid repeated filesystem reads.
+
     Args:
         research_dir: Path to research/ folder
 
     Returns:
         List of experiment metadata, sorted by date (newest first)
     """
+    cache_key = f"research_folder:{research_dir}"
+    cached = _get_cached(cache_key)
+    if cached is not None:
+        return cached
+
     experiments = []
 
     # Find all experiment folders (YYYY-MM-DD-name pattern)
@@ -199,7 +231,43 @@ def parse_research_folder(research_dir: Path) -> list[ExperimentMetadata]:
     # Sort by date, newest first
     experiments.sort(key=lambda e: e.date, reverse=True)
 
+    # Cache the result
+    _set_cached(cache_key, experiments)
+
     return experiments
+
+
+def get_experiment_findings(experiment_slug: str, research_dir: Path) -> tuple[dict[str, Any], str] | None:
+    """Get cached experiment findings (frontmatter + rendered HTML).
+
+    Results are cached for 1 hour.
+
+    Args:
+        experiment_slug: Experiment folder name (e.g., "2025-10-29-when-agents-act")
+        research_dir: Path to research/ folder
+
+    Returns:
+        Tuple of (frontmatter_dict, findings_html) or None if not found
+    """
+    cache_key = f"experiment_findings:{experiment_slug}"
+    cached = _get_cached(cache_key)
+    if cached is not None:
+        return cached
+
+    experiment_dir = research_dir / experiment_slug
+    findings_path = experiment_dir / "findings.md"
+
+    if not findings_path.exists():
+        return None
+
+    findings_text = findings_path.read_text()
+    frontmatter, findings_markdown = parse_yaml_frontmatter(findings_text)
+    findings_html = render_markdown(findings_markdown, experiment_slug=experiment_slug)
+
+    result = (frontmatter, findings_html)
+    _set_cached(cache_key, result)
+
+    return result
 
 
 def render_markdown(markdown_text: str, strip_first_h1: bool = True, experiment_slug: str | None = None) -> str:

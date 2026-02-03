@@ -1,9 +1,10 @@
 """FastAPI application for exploring dilemmas."""
 
 import io
-import os
+import time
 import zipfile
 from pathlib import Path
+from typing import Any
 
 from fastapi import Depends, FastAPI, HTTPException, Query, Request
 from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
@@ -14,12 +15,36 @@ from sqlalchemy import func
 from sqlmodel import or_, select
 
 from dilemmas.api.auth import verify_api_key
-from dilemmas.api.research_parser import parse_research_folder, parse_yaml_frontmatter, render_markdown
+from dilemmas.api.research_parser import (
+    get_experiment_findings,
+    parse_research_folder,
+    parse_yaml_frontmatter,
+    render_markdown,
+)
 from dilemmas.db.database import get_database
 from dilemmas.models.db import DilemmaDB, JudgementDB
 from dilemmas.models.dilemma import Dilemma
 from dilemmas.models.judgement import Judgement
 from dilemmas.services.generator import DilemmaGenerator
+
+# Simple in-memory cache for database queries (per-worker)
+_api_cache: dict[str, tuple[float, Any]] = {}
+_API_CACHE_TTL = 3600  # 1 hour
+
+
+def _get_api_cached(key: str) -> Any | None:
+    """Get value from API cache if not expired."""
+    if key in _api_cache:
+        timestamp, value = _api_cache[key]
+        if time.time() - timestamp < _API_CACHE_TTL:
+            return value
+        del _api_cache[key]
+    return None
+
+
+def _set_api_cached(key: str, value: Any) -> None:
+    """Set value in API cache."""
+    _api_cache[key] = (time.time(), value)
 
 app = FastAPI(
     title="VALUES.md Dilemmas API",
@@ -475,7 +500,7 @@ async def view_judgement(request: Request, judgement_id: str):
 
 @app.get("/research", response_class=HTMLResponse)
 async def research_index(request: Request):
-    """List all research experiments."""
+    """List all research experiments (cached for 1 hour)."""
     if not RESEARCH_DIR.exists():
         return templates.TemplateResponse(
             "research_index.html",
@@ -484,15 +509,18 @@ async def research_index(request: Request):
 
     experiments = parse_research_folder(RESEARCH_DIR)
 
-    return templates.TemplateResponse(
+    response = templates.TemplateResponse(
         "research_index.html",
         {"request": request, "experiments": experiments},
     )
+    # Cache for 1 hour (browser) + allow CDN caching
+    response.headers["Cache-Control"] = "public, max-age=3600"
+    return response
 
 
 @app.get("/research/guide", response_class=HTMLResponse)
 async def research_guide(request: Request):
-    """Reproducibility guide for research experiments."""
+    """Reproducibility guide for research experiments (cached for 1 day)."""
     guide_path = RESEARCH_DIR / "GUIDE.md"
 
     if not guide_path.exists():
@@ -504,39 +532,38 @@ async def research_guide(request: Request):
     frontmatter, markdown_content = parse_yaml_frontmatter(guide_markdown)
     guide_html = render_markdown(markdown_content)
 
-    return templates.TemplateResponse(
+    response = templates.TemplateResponse(
         "research_guide.html",
         {
             "request": request,
             "guide_html": guide_html,
         },
     )
+    # Cache for 1 day - this page rarely changes
+    response.headers["Cache-Control"] = "public, max-age=86400"
+    return response
 
 
 @app.get("/research/{experiment_slug}", response_class=HTMLResponse)
 async def research_detail(request: Request, experiment_slug: str):
-    """View a single research experiment with findings."""
+    """View a single research experiment with findings (cached for 1 hour)."""
     experiment_dir = RESEARCH_DIR / experiment_slug
 
     if not experiment_dir.exists():
         raise HTTPException(status_code=404, detail="Experiment not found")
 
-    # Load findings.md
-    findings_path = experiment_dir / "findings.md"
-    if not findings_path.exists():
+    # Get cached findings (file read + parse + render)
+    findings_data = get_experiment_findings(experiment_slug, RESEARCH_DIR)
+    if findings_data is None:
         raise HTTPException(status_code=404, detail="Findings not found")
 
-    findings_text = findings_path.read_text()
+    frontmatter, findings_html = findings_data
 
-    # Strip YAML frontmatter before rendering
-    frontmatter, findings_markdown = parse_yaml_frontmatter(findings_text)
-    findings_html = render_markdown(findings_markdown, experiment_slug=experiment_slug)
-
-    # Parse metadata
+    # Parse metadata (also cached)
     experiments = parse_research_folder(RESEARCH_DIR)
     experiment = next((e for e in experiments if e.slug == experiment_slug), None)
 
-    return templates.TemplateResponse(
+    response = templates.TemplateResponse(
         "research_detail.html",
         {
             "request": request,
@@ -545,6 +572,9 @@ async def research_detail(request: Request, experiment_slug: str):
             "frontmatter": frontmatter,  # Pass YAML frontmatter for OG tags
         },
     )
+    # Cache for 1 hour - research pages are stable after publication
+    response.headers["Cache-Control"] = "public, max-age=3600"
+    return response
 
 
 @app.get("/research/{experiment_slug}/download")
@@ -807,16 +837,22 @@ async def get_stats():
 
 @app.get("/api/collections/{collection_name}/dilemmas", response_model=list[Dilemma])
 async def get_collection_dilemmas(collection_name: str):
-    """Get all dilemmas in a specific collection (public endpoint).
+    """Get all dilemmas in a specific collection (cached for 1 hour).
 
-    Use case: Frontend fetches bench-1 test set for human testing.
+    Use case: Frontend fetches bench-2 test set for human testing.
 
     Args:
-        collection_name: Name of the collection (e.g., 'bench-1')
+        collection_name: Name of the collection (e.g., 'bench-2')
 
     Returns:
         List of dilemmas with all fields (choices, variables, modifiers, tools)
     """
+    # Check cache first
+    cache_key = f"collection_dilemmas:{collection_name}"
+    cached = _get_api_cached(cache_key)
+    if cached is not None:
+        return cached
+
     db = get_database()
 
     async for session in db.get_session():
@@ -831,6 +867,10 @@ async def get_collection_dilemmas(collection_name: str):
         dilemmas = [d.to_domain() for d in db_dilemmas]
 
     await db.close()
+
+    # Cache the result
+    _set_api_cached(cache_key, dilemmas)
+
     return dilemmas
 
 
