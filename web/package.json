@@ -4,9 +4,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "prebuild": "tsx scripts/copy-research-figures.ts && pnpm cf-typegen",
+    "prebuild": "tsx scripts/copy-research-figures.ts && tsx scripts/copy-prompts.ts && pnpm cf-typegen",
     "cf-typegen": "wrangler types --env-interface CloudflareEnv ./worker-configuration.d.ts",
-    "predev": "tsx scripts/copy-research-figures.ts && pnpm cf-typegen",
+    "predev": "tsx scripts/copy-research-figures.ts && tsx scripts/copy-prompts.ts && pnpm cf-typegen",
     "dev": "astro dev",
     "build": "astro check && astro build",
     "preview": "wrangler dev",
