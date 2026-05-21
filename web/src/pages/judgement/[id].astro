@@ -1,0 +1,145 @@
+---
+/**
+ * /judgement/[id] — single judgement detail.
+ *
+ * SSR, 24-h edge cache (judgements are append-only). Mirrors
+ * src/dilemmas/api/templates/judgement.html.
+ */
+import { env } from 'cloudflare:workers';
+import { eq } from 'drizzle-orm';
+import Base from '@/layouts/Base.astro';
+import { getDb } from '@/db/client';
+import { dilemmas, judgements } from '@/db/schema';
+import type { DilemmaData, JudgementData } from '@/db/types';
+
+const id = Astro.params.id;
+if (!id) return new Response('Bad request', { status: 400 });
+
+const db = getDb(env.DATABASE_URL);
+const jrows = await db.select().from(judgements).where(eq(judgements.id, id)).limit(1);
+const jrow = jrows[0];
+if (!jrow) {
+  Astro.response.status = 404;
+  return Astro.redirect('/judgements', 302);
+}
+const j = jrow.data as JudgementData;
+
+const drows = await db
+  .select({ id: dilemmas.id, title: dilemmas.title, data: dilemmas.data })
+  .from(dilemmas)
+  .where(eq(dilemmas.id, jrow.dilemmaId))
+  .limit(1);
+const drow = drows[0];
+const d = (drow?.data as DilemmaData | undefined) ?? null;
+
+const aiJudge = (j.ai_judge ?? null) as Record<string, unknown> | null;
+const isAi = j.judge_type === 'ai' && aiJudge;
+const judgeLabel = isAi ? `🤖 ${aiJudge!.model_id}` : '👤 Human';
+const conf = j.confidence != null ? (j.confidence as number).toFixed(1) : null;
+const variableValues = (j.variable_values ?? null) as Record<string, string> | null;
+const modifierIndices = Array.isArray(j.modifier_indices) ? (j.modifier_indices as number[]) : [];
+
+Astro.response.headers.set('Cache-Control', 'public, s-maxage=86400, stale-while-revalidate=604800');
+---
+<Base title="Judgement Details — VALUES.md" noindex>
+  <a href="/judgements" class="back-link">← Back to judgements</a>
+
+  <div class="card">
+    <h1 style="margin-top: 0;">Judgement Details</h1>
+
+    {drow && (
+      <h2 style="color: #0066cc; margin-top: 20px;">
+        <a href={`/dilemma/${drow.id}`}>{drow.title}</a>
+      </h2>
+    )}
+
+    <div style="margin: 15px 0;">
+      <span class="badge" style="background: #fff3cd; color: #856404;">{judgeLabel}</span>
+      <span class="badge" style="background: #d4edda; color: #155724;">Choice: {j.choice_id ?? '—'}</span>
+      {conf && <span class="badge" style="background: #d1ecf1; color: #0c5460;">Confidence: {conf}/10</span>}
+      <span class="badge" style="background: #e2e3e5; color: #383d41;">{j.mode} mode</span>
+    </div>
+
+    <h3>Situation Presented</h3>
+    <div class="situation-box">{j.rendered_situation}</div>
+
+    <h3>Decision &amp; Reasoning</h3>
+    <div class="choice-item">
+      <div class="choice-label">Selected: {j.choice_id ?? '—'}</div>
+      <div class="choice-description">{j.reasoning ?? <em>(no reasoning recorded)</em>}</div>
+    </div>
+
+    {j.reasoning_trace && (
+      <Fragment>
+        <h3>Extended Reasoning</h3>
+        <div class="situation-box">{j.reasoning_trace as string}</div>
+      </Fragment>
+    )}
+
+    <h3>Judge Details</h3>
+    <div class="metadata-box">
+      {isAi && aiJudge && (
+        <Fragment>
+          <p><strong>Model:</strong> {String(aiJudge.model_id)}</p>
+          {aiJudge.temperature != null && <p><strong>Temperature:</strong> {Number(aiJudge.temperature).toFixed(1)}</p>}
+          <p><strong>Mode:</strong> {j.mode}</p>
+          {aiJudge.system_prompt_type && <p><strong>System Prompt Type:</strong> {String(aiJudge.system_prompt_type)}</p>}
+          {aiJudge.values_file_name && <p><strong>VALUES.md File:</strong> {String(aiJudge.values_file_name)}</p>}
+          {aiJudge.system_prompt && (
+            <details style="margin-top: 10px;">
+              <summary style="cursor: pointer; font-weight: 600;">View System Prompt</summary>
+              <pre style="background: #f5f5f5; padding: 15px; margin-top: 10px; overflow-x: auto; white-space: pre-wrap;">{String(aiJudge.system_prompt)}</pre>
+            </details>
+          )}
+          {j.response_time_ms != null && <p><strong>Response Time:</strong> {Number(j.response_time_ms)}ms</p>}
+          {aiJudge.extended_reasoning_enabled && <p><strong>Extended Reasoning:</strong> Enabled</p>}
+          {aiJudge.tokens_used != null && <p><strong>Tokens Used:</strong> {Number(aiJudge.tokens_used)}</p>}
+        </Fragment>
+      )}
+      <p><strong>Created:</strong> {jrow.createdAt.toISOString().slice(0, 19).replace('T', ' ')}</p>
+      <p><strong>Judgement ID:</strong> <code>{jrow.id}</code></p>
+    </div>
+
+    {variableValues && Object.keys(variableValues).length > 0 && (
+      <Fragment>
+        <h3>Variable Values Used</h3>
+        <div class="variables-box">
+          {Object.entries(variableValues).map(([k, v]) => (
+            <p><code>{k}</code> → {v}</p>
+          ))}
+        </div>
+      </Fragment>
+    )}
+
+    {modifierIndices.length > 0 && d && Array.isArray(d.modifiers) && (
+      <Fragment>
+        <h3>Modifiers Applied</h3>
+        <div class="variables-box">
+          <ul style="list-style: none; padding: 0;">
+            {modifierIndices.map((idx) => {
+              const mods = d.modifiers as string[];
+              if (idx < mods.length) return <li style="margin: 5px 0;">• {mods[idx]}</li>;
+              return null;
+            })}
+          </ul>
+        </div>
+      </Fragment>
+    )}
+
+    {j.error_occurred === true && (
+      <Fragment>
+        <h3>Error</h3>
+        <div class="situation-box" style="border-left-color: #f44336;">
+          <p><strong>Error occurred:</strong> {j.error_message as string ?? '(no message)'}</p>
+        </div>
+      </Fragment>
+    )}
+  </div>
+
+  {drow && (
+    <div class="card">
+      <h2>Original Dilemma</h2>
+      <p><a href={`/dilemma/${drow.id}`}>View full dilemma →</a></p>
+    </div>
+  )}
+</Base>

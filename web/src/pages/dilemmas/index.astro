@@ -1,0 +1,150 @@
+---
+/**
+ * /dilemmas — paginated list of dilemmas with search + collection filter.
+ *
+ * SSR with 5-min edge cache. Mirrors src/dilemmas/api/templates/index.html
+ * and src/dilemmas/api/app.py:list_dilemmas. Drops the domain/tag filter
+ * inputs from the Python form (they relied on json_extract — port later if
+ * needed); search, collection, and pagination work.
+ */
+import { env } from 'cloudflare:workers';
+import { and, asc, desc, eq, isNotNull, like, or, sql } from 'drizzle-orm';
+import Base from '@/layouts/Base.astro';
+import { getDb } from '@/db/client';
+import { dilemmas } from '@/db/schema';
+
+const url = new URL(Astro.request.url);
+const search = url.searchParams.get('search') ?? '';
+const collection = url.searchParams.get('collection') ?? '';
+const page = Math.max(1, parseInt(url.searchParams.get('page') ?? '1', 10) || 1);
+const limit = 50;
+const offset = (page - 1) * limit;
+
+const db = getDb(env.DATABASE_URL);
+
+const filters = [
+  search ? or(like(dilemmas.title, `%${search}%`), sql`${dilemmas.data} LIKE ${`%${search}%`}`) : undefined,
+  collection ? eq(dilemmas.collection, collection) : undefined,
+].filter(Boolean) as any[];
+
+const where = filters.length > 0 ? and(...filters) : undefined;
+
+const [totalRow, rows, distinctCollectionsRows] = await Promise.all([
+  db.select({ n: sql<number>`count(*)::int` }).from(dilemmas).where(where as any),
+  db
+    .select({
+      id: dilemmas.id,
+      title: dilemmas.title,
+      collection: dilemmas.collection,
+      tagsJson: dilemmas.tagsJson,
+      createdAt: dilemmas.createdAt,
+      data: dilemmas.data,
+    })
+    .from(dilemmas)
+    .where(where as any)
+    .orderBy(desc(dilemmas.createdAt))
+    .limit(limit)
+    .offset(offset),
+  db
+    .selectDistinct({ collection: dilemmas.collection })
+    .from(dilemmas)
+    .where(isNotNull(dilemmas.collection))
+    .orderBy(asc(dilemmas.collection)),
+]);
+
+const total = totalRow[0]?.n ?? 0;
+const totalPages = Math.max(1, Math.ceil(total / limit));
+const hasPrev = page > 1;
+const hasNext = page < totalPages;
+const availableCollections = distinctCollectionsRows
+  .map((r) => r.collection)
+  .filter((c): c is string => Boolean(c));
+
+function qs(params: Record<string, string | number>): string {
+  const u = new URLSearchParams();
+  for (const [k, v] of Object.entries(params)) if (v !== '' && v != null) u.set(k, String(v));
+  const s = u.toString();
+  return s ? `&${s}` : '';
+}
+
+Astro.response.headers.set('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=3600');
+---
+<Base title="All Dilemmas — VALUES.md" noindex>
+  <form method="get" action="/dilemmas" style="background: #f5f5f3; padding: 20px; margin-bottom: 30px; border: 1px solid #e8e8e4;">
+    <div style="margin-bottom: 15px;">
+      <label for="search" style="display: block; font-family: 'Inter', sans-serif; font-weight: 600; margin-bottom: 5px;">Search:</label>
+      <input
+        type="text"
+        id="search"
+        name="search"
+        value={search}
+        placeholder="Search in titles and situations..."
+        style="width: 100%; padding: 8px; font-size: 1em; border: 1px solid #d4d4d0; border-radius: 2px;"
+      />
+    </div>
+    <div style="margin-bottom: 15px;">
+      <label for="collection" style="display: block; font-family: 'Inter', sans-serif; font-weight: 600; margin-bottom: 5px;">Collection:</label>
+      <select id="collection" name="collection" style="width: 100%; padding: 8px; font-size: 1em; border: 1px solid #d4d4d0; border-radius: 2px;">
+        <option value="">All Collections</option>
+        {availableCollections.map((c) => (
+          <option value={c} selected={collection === c}>{c}</option>
+        ))}
+      </select>
+    </div>
+    <button type="submit" style="padding: 10px 20px; background: #2c5282; color: white; border: none; border-radius: 2px; font-family: 'Inter', sans-serif; font-weight: 600; cursor: pointer;">Search</button>
+    {(search || collection) && (
+      <a href="/dilemmas" style="margin-left: 10px; padding: 10px 20px; background: #e8e8e4; color: #2a2a2a; text-decoration: none; border-radius: 2px; font-family: 'Inter', sans-serif; font-weight: 600; display: inline-block;">Clear</a>
+    )}
+  </form>
+
+  <div class="stats">
+    <div class="stat-card"><div class="stat-value">{total}</div><div class="stat-label">Total Dilemmas</div></div>
+    <div class="stat-card"><div class="stat-value">{page}</div><div class="stat-label">Page {page} of {totalPages}</div></div>
+  </div>
+
+  {rows.length === 0 ? (
+    <div class="empty-state">
+      <h2>No dilemmas found</h2>
+      {(search || collection) ? <p>Try adjusting your search criteria or <a href="/dilemmas">view all dilemmas</a>.</p> : <p>Run <code>uv run python scripts/generate_batch.py 10</code> to generate some dilemmas.</p>}
+    </div>
+  ) : (
+    <Fragment>
+      {rows.map((row) => {
+        const tags = Array.isArray(row.tagsJson) ? row.tagsJson : [];
+        const data = row.data;
+        const choiceCount = Array.isArray(data?.choices) ? data.choices.length : 0;
+        const generator = (data?.generator_model as string) || 'Unknown';
+        const promptVersion = (data?.generator_prompt_version as string) || '';
+        return (
+          <div class="card">
+            <h2><a href={`/dilemma/${row.id}`}>{row.title}</a></h2>
+            <div style="margin: 15px 0;">
+              {row.collection && (
+                <a href={`/dilemmas?collection=${row.collection}`} class="badge" style="background: #f3e5f5; color: #6a1b9a; text-decoration: none;">📚 {row.collection}</a>
+              )}
+              <span class="badge" style="background: #fff3e0; color: #e65100;">{choiceCount} choices</span>
+            </div>
+            {tags.length > 0 && (
+              <div style="margin: 10px 0;">
+                {tags.slice(0, 5).map((t) => <span class="badge badge-tag">{t}</span>)}
+                {tags.length > 5 && <span class="badge badge-tag">+{tags.length - 5} more</span>}
+              </div>
+            )}
+            <div class="meta">
+              Generated by <strong>{generator}</strong>{promptVersion && ` using ${promptVersion}`}
+              {' • '}{row.createdAt.toISOString().slice(0, 16).replace('T', ' ')}
+            </div>
+          </div>
+        );
+      })}
+
+      {totalPages > 1 && (
+        <div style="text-align: center; margin: 40px 0; font-family: 'Inter', sans-serif;">
+          {hasPrev && <a href={`/dilemmas?page=${page - 1}${qs({ search, collection })}`} style="padding: 10px 20px; background: #f5f5f3; color: #2a2a2a; text-decoration: none; border: 1px solid #d4d4d0; border-radius: 2px; margin: 0 5px;">← Previous</a>}
+          <span style="margin: 0 15px; color: #6a6a6a;">Page {page} of {totalPages}</span>
+          {hasNext && <a href={`/dilemmas?page=${page + 1}${qs({ search, collection })}`} style="padding: 10px 20px; background: #f5f5f3; color: #2a2a2a; text-decoration: none; border: 1px solid #d4d4d0; border-radius: 2px; margin: 0 5px;">Next →</a>}
+        </div>
+      )}
+    </Fragment>
+  )}
+</Base>

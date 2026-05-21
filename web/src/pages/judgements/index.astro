@@ -1,0 +1,193 @@
+---
+/**
+ * /judgements — paginated list of judgements with model/mode/experiment filters.
+ *
+ * SSR with 1-min edge cache. Mirrors src/dilemmas/api/templates/judgements.html
+ * + src/dilemmas/api/app.py:list_judgements.
+ */
+import { env } from 'cloudflare:workers';
+import { and, asc, desc, eq, inArray, isNotNull, sql } from 'drizzle-orm';
+import Base from '@/layouts/Base.astro';
+import { getDb } from '@/db/client';
+import { dilemmas, judgements } from '@/db/schema';
+import type { JudgementData } from '@/db/types';
+
+const url = new URL(Astro.request.url);
+const search = url.searchParams.get('search') ?? '';
+const experimentId = url.searchParams.get('experiment_id') ?? '';
+const model = url.searchParams.get('model') ?? '';
+const mode = url.searchParams.get('mode') ?? '';
+const page = Math.max(1, parseInt(url.searchParams.get('page') ?? '1', 10) || 1);
+const limit = 50;
+const offset = (page - 1) * limit;
+
+const db = getDb(env.DATABASE_URL);
+
+const filters = [
+  search ? sql`${judgements.data} LIKE ${`%${search}%`}` : undefined,
+  experimentId ? eq(judgements.experimentId, experimentId) : undefined,
+  model ? eq(judgements.judgeId, model) : undefined,
+  mode ? eq(judgements.mode, mode) : undefined,
+].filter(Boolean) as any[];
+
+const where = filters.length > 0 ? and(...filters) : undefined;
+
+const [totalRow, rows] = await Promise.all([
+  db.select({ n: sql<number>`count(*)::int` }).from(judgements).where(where as any),
+  db
+    .select({
+      id: judgements.id,
+      dilemmaId: judgements.dilemmaId,
+      data: judgements.data,
+      judgeType: judgements.judgeType,
+      judgeId: judgements.judgeId,
+      mode: judgements.mode,
+      choiceId: judgements.choiceId,
+      createdAt: judgements.createdAt,
+    })
+    .from(judgements)
+    .where(where as any)
+    .orderBy(desc(judgements.createdAt))
+    .limit(limit)
+    .offset(offset),
+]);
+
+const total = totalRow[0]?.n ?? 0;
+const totalPages = Math.max(1, Math.ceil(total / limit));
+const hasPrev = page > 1;
+const hasNext = page < totalPages;
+
+const dilemmaTitles = new Map<string, string>();
+if (rows.length > 0) {
+  const ids = Array.from(new Set(rows.map((r) => r.dilemmaId)));
+  const drows = await db
+    .select({ id: dilemmas.id, title: dilemmas.title })
+    .from(dilemmas)
+    .where(inArray(dilemmas.id, ids));
+  for (const dr of drows) dilemmaTitles.set(dr.id, dr.title);
+}
+
+const [experimentsRows, modelsRows] = await Promise.all([
+  db
+    .selectDistinct({ experimentId: judgements.experimentId })
+    .from(judgements)
+    .where(isNotNull(judgements.experimentId))
+    .orderBy(desc(judgements.experimentId))
+    .limit(20),
+  db
+    .selectDistinct({ judgeId: judgements.judgeId })
+    .from(judgements)
+    .where(eq(judgements.judgeType, 'ai'))
+    .orderBy(asc(judgements.judgeId)),
+]);
+const availableExperiments = experimentsRows.map((r) => r.experimentId).filter((x): x is string => !!x);
+const availableModels = modelsRows.map((r) => r.judgeId).filter((x): x is string => !!x);
+const availableModes = ['theory', 'action'] as const;
+
+function qs(params: Record<string, string>): string {
+  const u = new URLSearchParams();
+  for (const [k, v] of Object.entries(params)) if (v) u.set(k, v);
+  const s = u.toString();
+  return s ? `&${s}` : '';
+}
+
+Astro.response.headers.set('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=600');
+---
+<Base title="Judgements — VALUES.md" noindex>
+  <form method="get" action="/judgements" style="background: #f5f5f3; padding: 20px; margin-bottom: 30px; border: 1px solid #e8e8e4;">
+    <div style="margin-bottom: 15px;">
+      <label for="search" style="display: block; font-family: 'Inter', sans-serif; font-weight: 600; margin-bottom: 5px;">Search:</label>
+      <input
+        type="text"
+        id="search"
+        name="search"
+        value={search}
+        placeholder="Search in reasoning and choices..."
+        style="width: 100%; padding: 8px; font-size: 1em; border: 1px solid #d4d4d0; border-radius: 2px;"
+      />
+    </div>
+    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+      <div>
+        <label for="experiment_id" style="display: block; font-family: 'Inter', sans-serif; font-weight: 600; margin-bottom: 5px;">Experiment:</label>
+        <select id="experiment_id" name="experiment_id" style="width: 100%; padding: 8px; font-size: 1em; border: 1px solid #d4d4d0; border-radius: 2px;">
+          <option value="">All</option>
+          {availableExperiments.map((e) => (
+            <option value={e} selected={experimentId === e}>{e.slice(0, 16)}…</option>
+          ))}
+        </select>
+      </div>
+      <div>
+        <label for="model" style="display: block; font-family: 'Inter', sans-serif; font-weight: 600; margin-bottom: 5px;">Model:</label>
+        <select id="model" name="model" style="width: 100%; padding: 8px; font-size: 1em; border: 1px solid #d4d4d0; border-radius: 2px;">
+          <option value="">All</option>
+          {availableModels.map((m) => (
+            <option value={m} selected={model === m}>{m}</option>
+          ))}
+        </select>
+      </div>
+      <div>
+        <label for="mode" style="display: block; font-family: 'Inter', sans-serif; font-weight: 600; margin-bottom: 5px;">Mode:</label>
+        <select id="mode" name="mode" style="width: 100%; padding: 8px; font-size: 1em; border: 1px solid #d4d4d0; border-radius: 2px;">
+          <option value="">All</option>
+          {availableModes.map((m) => (
+            <option value={m} selected={mode === m}>{m}</option>
+          ))}
+        </select>
+      </div>
+    </div>
+    <button type="submit" style="padding: 10px 20px; background: #2c5282; color: white; border: none; border-radius: 2px; font-family: 'Inter', sans-serif; font-weight: 600; cursor: pointer;">Search</button>
+    {(search || experimentId || model || mode) && (
+      <a href="/judgements" style="margin-left: 10px; padding: 10px 20px; background: #e8e8e4; color: #2a2a2a; text-decoration: none; border-radius: 2px; font-family: 'Inter', sans-serif; font-weight: 600; display: inline-block;">Clear</a>
+    )}
+  </form>
+
+  <div class="stats">
+    <div class="stat-card"><div class="stat-value">{total}</div><div class="stat-label">Total Judgements</div></div>
+    <div class="stat-card"><div class="stat-value">{page}</div><div class="stat-label">Page {page} of {totalPages}</div></div>
+  </div>
+
+  {rows.length === 0 ? (
+    <div class="empty-state">
+      <h2>No judgements found</h2>
+      {(search || experimentId || model || mode)
+        ? <p>Try adjusting your search criteria or <a href="/judgements">view all judgements</a>.</p>
+        : <p>Run <code>uv run python scripts/test_judge.py</code> to generate some judgements.</p>}
+    </div>
+  ) : (
+    <Fragment>
+      {rows.map((row) => {
+        const d = row.data as JudgementData;
+        const title = dilemmaTitles.get(row.dilemmaId) ?? `Judgement ${row.id.slice(0, 8)}`;
+        const judgeLabel = row.judgeType === 'ai' ? `🤖 ${row.judgeId}` : '👤 Human';
+        const conf = d.confidence != null ? (d.confidence as number).toFixed(1) : null;
+        return (
+          <div class="card">
+            <h2 style="margin-top: 0;">{title}</h2>
+            <div style="margin: 10px 0;">
+              <span class="badge" style="background: #fff3cd; color: #856404;">{judgeLabel}</span>
+              <span class="badge" style="background: #d4edda; color: #155724;">Choice: {row.choiceId ?? '—'}</span>
+              {conf && <span class="badge" style="background: #d1ecf1; color: #0c5460;">Confidence: {conf}/10</span>}
+              <span class="badge" style="background: #e2e3e5; color: #383d41;">{row.mode} mode</span>
+            </div>
+            {d.reasoning && (
+              <p style="margin: 15px 0; color: #555;"><strong>Reasoning:</strong> {d.reasoning as string}</p>
+            )}
+            <div class="meta">
+              {row.createdAt.toISOString().slice(0, 16).replace('T', ' ')}
+              {' • '}
+              <a href={`/judgement/${row.id}`}>View details</a>
+            </div>
+          </div>
+        );
+      })}
+
+      {totalPages > 1 && (
+        <div style="text-align: center; margin: 40px 0; font-family: 'Inter', sans-serif;">
+          {hasPrev && <a href={`/judgements?page=${page - 1}${qs({ search, experiment_id: experimentId, model, mode })}`} style="padding: 10px 20px; background: #f5f5f3; color: #2a2a2a; text-decoration: none; border: 1px solid #d4d4d0; border-radius: 2px; margin: 0 5px;">← Previous</a>}
+          <span style="margin: 0 15px; color: #6a6a6a;">Page {page} of {totalPages}</span>
+          {hasNext && <a href={`/judgements?page=${page + 1}${qs({ search, experiment_id: experimentId, model, mode })}`} style="padding: 10px 20px; background: #f5f5f3; color: #2a2a2a; text-decoration: none; border: 1px solid #d4d4d0; border-radius: 2px; margin: 0 5px;">Next →</a>}
+        </div>
+      )}
+    </Fragment>
+  )}
+</Base>

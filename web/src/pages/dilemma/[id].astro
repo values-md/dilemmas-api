@@ -1,0 +1,177 @@
+---
+/**
+ * /dilemma/[id] — single dilemma view.
+ *
+ * SSR, 24-h edge cache (dilemmas are append-only). Mirrors
+ * src/dilemmas/api/templates/dilemma.html.
+ *
+ * The Python side calls dilemma.render() with default variable values to
+ * substitute {PLACEHOLDERS} in the situation_template. We do the same here
+ * by picking the first value from each variable's list.
+ */
+import { env } from 'cloudflare:workers';
+import { eq } from 'drizzle-orm';
+import Base from '@/layouts/Base.astro';
+import { getDb } from '@/db/client';
+import { dilemmas } from '@/db/schema';
+
+const id = Astro.params.id;
+if (!id) return new Response('Bad request', { status: 400 });
+
+const db = getDb(env.DATABASE_URL);
+const rows = await db.select().from(dilemmas).where(eq(dilemmas.id, id)).limit(1);
+const row = rows[0];
+
+if (!row) {
+  Astro.response.status = 404;
+  return Astro.redirect('/dilemmas', 302); // simple fallback
+}
+
+const d = row.data as any;
+
+function renderSituation(template: string, variables: Record<string, string[]>): string {
+  let out = template;
+  for (const [k, vals] of Object.entries(variables ?? {})) {
+    const v = vals?.[0];
+    if (v != null) out = out.split(k).join(v);
+  }
+  return out;
+}
+
+const renderedSituation = renderSituation(d.situation_template ?? '', d.variables ?? {});
+const tags = Array.isArray(d.tags) ? (d.tags as string[]) : [];
+const variables = (d.variables ?? {}) as Record<string, string[]>;
+const modifiers = Array.isArray(d.modifiers) ? (d.modifiers as string[]) : [];
+const availableTools = Array.isArray(d.available_tools) ? (d.available_tools as Array<{ name: string; description: string }>) : [];
+const seedComponents = d.seed_components as Record<string, unknown> | null;
+
+Astro.response.headers.set('Cache-Control', 'public, s-maxage=86400, stale-while-revalidate=604800');
+---
+<Base title={`${d.title} — VALUES.md`} noindex>
+  <a href="/dilemmas" class="back-link">← Back to all dilemmas</a>
+
+  <div class="card">
+    <h1>{d.title}</h1>
+
+    <div style="margin: 15px 0;">
+      {d.institution_type && (
+        <span class="badge" style="background: #e8f5e9; color: #2e7d32;">🏛️ {String(d.institution_type)}</span>
+      )}
+      {seedComponents?.domain && (
+        <span class="badge badge-domain">{String(seedComponents.domain).replace(/_/g, ' ')}</span>
+      )}
+      {seedComponents?.conflict && (
+        <span class="badge" style="background: #fce4ec; color: #c2185b;">{String(seedComponents.conflict).replace(/_/g, ' ')}</span>
+      )}
+    </div>
+
+    {tags.length > 0 && (
+      <div style="margin: 10px 0;">{tags.map((t) => <span class="badge badge-tag">{t}</span>)}</div>
+    )}
+
+    <h2>Situation</h2>
+    <div class="situation-box">{renderedSituation}</div>
+
+    <h2>Question</h2>
+    <p style="font-size: 1.1em; font-style: italic; color: #555; margin: 15px 0;">{d.question}</p>
+
+    <h2>Choices</h2>
+    <ul class="choice-list">
+      {(d.choices ?? []).map((choice: any) => (
+        <li class="choice-item">
+          <div class="choice-label">{choice.label}</div>
+          <div class="choice-description">{choice.description}</div>
+          {choice.tool_name && (
+            <div style="margin-top: 8px; font-size: 0.9em; color: #666;">🔧 Tool: <code>{choice.tool_name}</code></div>
+          )}
+        </li>
+      ))}
+    </ul>
+
+    {Object.keys(variables).length > 0 && (
+      <Fragment>
+        <h2>Variables for Testing</h2>
+        <div class="variables-box">
+          {Object.entries(variables).map(([varName, vals]) => (
+            <div style="margin-bottom: 15px;">
+              <strong><code>{varName}</code></strong>
+              <ul style="margin: 8px 0 0 20px; padding: 0;">
+                {vals.map((v) => <li style="margin-bottom: 4px;">{v}</li>)}
+              </ul>
+            </div>
+          ))}
+          <div style="margin-top: 15px; color: #666; font-size: 0.9em;">
+            This dilemma can be rendered with different variable combinations to test for bias.
+          </div>
+        </div>
+      </Fragment>
+    )}
+
+    {modifiers.length > 0 && (
+      <Fragment>
+        <h2>Modifiers</h2>
+        <div class="variables-box">
+          <ul style="list-style: none;">
+            {modifiers.map((m) => <li style="margin-bottom: 8px;">• {m}</li>)}
+          </ul>
+          <div style="margin-top: 15px; color: #666; font-size: 0.9em;">
+            These can be added to create variations (time pressure, stakes, etc.)
+          </div>
+        </div>
+      </Fragment>
+    )}
+
+    {availableTools.length > 0 && (
+      <Fragment>
+        <h2>Available Tools (Action Mode)</h2>
+        <div class="variables-box">
+          {availableTools.map((tool) => (
+            <div style="margin-bottom: 15px;">
+              <strong><code>{tool.name}</code></strong>
+              <div style="color: #666; margin-top: 5px;">{tool.description}</div>
+            </div>
+          ))}
+        </div>
+      </Fragment>
+    )}
+
+    {d.action_context && (
+      <Fragment>
+        <h2>Action Context</h2>
+        <div class="variables-box">{d.action_context}</div>
+      </Fragment>
+    )}
+
+    <h2>Metadata</h2>
+    <div class="metadata-box">
+      <div style="margin-bottom: 8px;"><strong>ID:</strong> <code>{row.id}</code></div>
+      {row.collection && (
+        <div style="margin-bottom: 8px;"><strong>Collection:</strong> <span class="badge" style="background: #f3e5f5; color: #6a1b9a;">{row.collection}</span></div>
+      )}
+      {d.batch_id && (
+        <div style="margin-bottom: 8px;"><strong>Batch ID:</strong> <code style="font-size: 0.85em;">{d.batch_id}</code></div>
+      )}
+      <div style="margin-bottom: 8px;"><strong>Created by:</strong> {d.created_by ?? 'unknown'}</div>
+      <div style="margin-bottom: 8px;"><strong>LLM Generated:</strong> {d.is_llm_generated ? 'Yes' : 'No'}</div>
+      {d.generator_model && (
+        <div style="margin-bottom: 8px;"><strong>Generator Model:</strong> {d.generator_model}</div>
+      )}
+      {d.generator_prompt_version && (
+        <div style="margin-bottom: 8px;"><strong>Prompt Version:</strong> {d.generator_prompt_version}</div>
+      )}
+      <div style="margin-bottom: 8px;">
+        <strong>Created at:</strong> {row.createdAt.toISOString().replace('T', ' ').slice(0, 19)} UTC
+      </div>
+      {seedComponents && (
+        <div style="margin-top: 15px;">
+          <strong>Seed Components:</strong>
+          <pre style="background: white; padding: 10px; border-radius: 4px; margin-top: 5px; overflow-x: auto;">{JSON.stringify(seedComponents, null, 2)}</pre>
+        </div>
+      )}
+    </div>
+  </div>
+
+  <div style="text-align: center; margin: 40px 0; color: #999;">
+    <a href="/dilemmas">← Back to all dilemmas</a>
+  </div>
+</Base>
