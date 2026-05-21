@@ -1,0 +1,162 @@
+---
+/**
+ * /research/[slug] — single research experiment.
+ *
+ * Prerendered. Loads findings.md from the `research` content collection
+ * and renders the body with the marked pipeline + figure path rewrite
+ * (see src/lib/render-research-markdown.ts). Mirrors
+ * src/dilemmas/api/templates/research_detail.html, including OG meta,
+ * print/download buttons, image lightbox, and print CSS.
+ */
+export const prerender = true;
+
+import { getCollection, type CollectionEntry } from 'astro:content';
+import Base from '@/layouts/Base.astro';
+import { renderResearchMarkdown } from '@/lib/render-research-markdown';
+
+export async function getStaticPaths() {
+  const all = await getCollection('research');
+  return all.map((entry) => ({
+    params: { slug: entry.id },
+    props: { entry },
+  }));
+}
+
+interface Props {
+  entry: CollectionEntry<'research'>;
+}
+
+const { entry } = Astro.props;
+const fm = entry.data;
+const slug = entry.id;
+const findingsHtml = renderResearchMarkdown(entry.body ?? '', { slug });
+
+const description = (fm.abstract ?? fm.research_question ?? '').slice(0, 200);
+const ogImage = fm.og_image
+  ? `https://research.values.md/research-static/${slug}/${fm.og_image}`
+  : 'https://research.values.md/static/android-chrome-512x512.png';
+---
+<Base
+  title={`${fm.title} — VALUES.md`}
+  description={description}
+  ogType="article"
+  ogTitle={fm.title}
+  ogDescription={fm.abstract ?? fm.research_question ?? ''}
+  ogImage={ogImage}
+  ogImageAlt={fm.og_image_alt ?? 'Research findings visualization'}
+  twitterCard={fm.og_image ? 'summary_large_image' : 'summary'}
+  publishedTime={fm.date}
+  tags={fm.tags}
+>
+  <a href="/research" class="back-link">← Back to Research</a>
+
+  <div style="margin-bottom: 30px;">
+    <h1>{fm.title}</h1>
+    <div class="header-flex" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
+      <div style="margin-bottom: 10px;">
+        <span class="badge badge-domain">{fm.date}</span>
+      </div>
+      <div class="button-group" style="display: flex; gap: 10px;">
+        <button
+          onclick="window.print()"
+          class="badge print-button"
+          style="background: #3a6e3a; color: white; border: none; cursor: pointer; padding: 8px 16px; font-size: 0.85em;"
+        >
+          🖨️ Print / PDF
+        </button>
+        <a
+          href="/research/guide"
+          class="badge"
+          style="background: #5a5a5a; color: white; text-decoration: none; padding: 8px 16px; font-size: 0.85em;"
+        >
+          📖 Guide
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="markdown-content" set:html={findingsHtml}></div>
+  </div>
+
+  <div id="imageLightbox" class="lightbox" onclick="closeLightbox()">
+    <span class="lightbox-close">&times;</span>
+    <img class="lightbox-content" id="lightboxImage" />
+  </div>
+
+  <script is:inline>
+    document.addEventListener('DOMContentLoaded', function () {
+      const images = document.querySelectorAll('.markdown-content img');
+      const lightbox = document.getElementById('imageLightbox');
+      const lightboxImg = document.getElementById('lightboxImage');
+      if (!lightbox || !lightboxImg) return;
+      images.forEach(function (img) {
+        img.addEventListener('click', function (e) {
+          e.stopPropagation();
+          lightbox.style.display = 'block';
+          lightboxImg.src = this.src;
+          lightboxImg.alt = this.alt;
+          document.body.style.overflow = 'hidden';
+        });
+      });
+    });
+    function closeLightbox() {
+      var el = document.getElementById('imageLightbox');
+      if (el) el.style.display = 'none';
+      document.body.style.overflow = 'auto';
+    }
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') closeLightbox();
+    });
+  </script>
+
+  <style>
+    .markdown-content { line-height: 1.8; }
+    .markdown-content h1 { font-size: 2em; margin-top: 0.5em; margin-bottom: 0.5em; border-bottom: 2px solid #d4d4d0; padding-bottom: 0.3em; color: #1a1a1a; }
+    .markdown-content h2 { font-size: 1.5em; margin-top: 1.5em; margin-bottom: 0.5em; color: #1a1a1a; }
+    .markdown-content h3 { font-size: 1.2em; margin-top: 1.2em; margin-bottom: 0.5em; color: #2a2a2a; }
+    .markdown-content p { margin: 1em 0; }
+    .markdown-content ul, .markdown-content ol { margin: 1em 0; padding-left: 2em; }
+    .markdown-content li { margin: 0.5em 0; }
+    .markdown-content code { background: #f5f5f3; padding: 2px 6px; border-radius: 2px; font-family: 'Monaco', 'Menlo', 'Consolas', monospace; font-size: 0.85em; color: #3a3a3a; }
+    .markdown-content pre { background: #f5f5f3; padding: 20px; margin: 25px 0; border-radius: 2px; overflow-x: auto; border: 1px solid #e8e8e4; }
+    .markdown-content pre code { background: none; padding: 0; }
+    .markdown-content table { width: 100%; border-collapse: collapse; margin: 30px 0; font-size: 0.9em; }
+    .markdown-content th, .markdown-content td { padding: 10px 12px; text-align: left; border-bottom: 1px solid #e0e0dc; }
+    .markdown-content th { font-family: 'Inter', -apple-system, sans-serif; background: transparent; font-weight: 600; border-bottom: 2px solid #2a2a2a; color: #1a1a1a; }
+    .markdown-content tr:last-child td { border-bottom: none; }
+    .markdown-content tbody tr:nth-child(even) { background: #f5f5f3; }
+    .markdown-content blockquote { margin: 30px 0; padding-left: 24px; border-left: 3px solid #c0c0b8; font-style: italic; color: #4a4a4a; }
+    .markdown-content hr { border: none; border-top: 1px solid #d4d4d0; margin: 40px 0; }
+    .markdown-content a { color: #2c5282; text-decoration: underline; text-decoration-color: rgba(44, 82, 130, 0.3); text-underline-offset: 2px; }
+    .markdown-content a:hover { text-decoration-color: rgba(44, 82, 130, 0.8); }
+    .markdown-content img { max-width: 100%; height: auto; border-radius: 4px; margin: 1em 0; cursor: pointer; transition: opacity 0.2s; }
+    .markdown-content img:hover { opacity: 0.9; }
+
+    @media (max-width: 768px) {
+      .markdown-content table { font-size: 0.9em; }
+      .markdown-content th, .markdown-content td { padding: 8px; }
+      .markdown-content h1 { font-size: 1.6em; }
+      .markdown-content h2 { font-size: 1.3em; }
+      .markdown-content h3 { font-size: 1.1em; }
+      .header-flex { flex-direction: column !important; align-items: flex-start !important; }
+      .button-group { flex-direction: column !important; width: 100%; }
+      .button-group a, .button-group button { width: 100%; justify-content: center; padding: 10px 16px !important; font-size: 0.85em !important; display: flex !important; }
+      .badge-domain { font-size: 0.75em !important; }
+    }
+
+    .print-button { font-family: 'Inter', -apple-system, sans-serif; }
+
+    @media print {
+      div[style*="margin-bottom: 30px"] { margin-bottom: 0 !important; page-break-inside: avoid; page-break-after: avoid; }
+      h1 { page-break-inside: avoid; page-break-after: avoid; }
+      .print-button { display: none !important; }
+      .lightbox { display: none !important; }
+    }
+
+    .lightbox { display: none; position: fixed; z-index: 9999; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.9); cursor: pointer; }
+    .lightbox-content { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); max-width: 95%; max-height: 95%; object-fit: contain; }
+    .lightbox-close { position: absolute; top: 20px; right: 40px; color: #f1f1f1; font-size: 40px; font-weight: bold; cursor: pointer; user-select: none; }
+    .lightbox-close:hover { color: #bbb; }
+  </style>
+</Base>

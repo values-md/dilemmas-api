@@ -8,6 +8,9 @@ export default defineConfig({
     platformProxy: { enabled: true },
   }),
   site: 'https://research.values.md',
+  // Match Python's URL shape: /research/<slug>, no trailing slash, no .html
+  trailingSlash: 'never',
+  build: { format: 'file' },
   vite: {
     resolve: {
       alias: import.meta.env.PROD

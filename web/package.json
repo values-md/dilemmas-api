@@ -24,6 +24,7 @@
     "astro": "^6.3.6",
     "drizzle-orm": "^0.45.2",
     "marked": "^18.0.4",
+    "marked-gfm-heading-id": "^4.1.4",
     "typescript": "^5.6.0",
     "zod": "^4.4.3"
   },
@@ -34,6 +35,10 @@
     "wrangler": "^4.93.1"
   },
   "pnpm": {
-    "onlyBuiltDependencies": ["esbuild", "sharp", "workerd"]
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "sharp",
+      "workerd"
+    ]
   }
 }
