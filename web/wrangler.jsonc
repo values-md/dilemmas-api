@@ -1,6 +1,8 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "values-md-research",
+  // Move38 account — same as the values.md Next.js worker.
+  "account_id": "a7b1e373a9581b6f04e2a48d3abc9aa3",
   // `main` is written into dist/wrangler.json by the @astrojs/cloudflare adapter
   // at build time. Don't set it here or the Cloudflare vite plugin will fail
   // pre-build because the file doesn't exist yet.
