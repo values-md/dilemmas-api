@@ -15,11 +15,10 @@
     "cpu_ms": 300000
   },
 
-  // Custom domain — uncomment once the zone is configured and you've run `wrangler login`.
-  // The first deploy with this block will create the DNS record and issue the cert.
-  // "routes": [
-  //   { "pattern": "research-next.values.md", "custom_domain": true }
-  // ]
+  // Custom domain. First deploy with this block creates the DNS record + cert.
+  "routes": [
+    { "pattern": "research.values.md", "custom_domain": true }
+  ]
 
   // Secrets (set via `wrangler secret put`):
   //   OPENROUTER_API_KEY
