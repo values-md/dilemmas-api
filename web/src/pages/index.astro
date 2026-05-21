@@ -1,7 +1,11 @@
 ---
 /**
- * / — redirect to /research (matches Python's RedirectResponse).
+ * / — server-side 307 to /research.
+ *
+ * Intentionally NOT prerendered: a prerendered redirect emits a static
+ * index.html with meta-refresh, which the browser renders briefly before
+ * navigating (visible flash). SSR returns a real HTTP 307 with no body so
+ * the browser navigates immediately.
  */
-export const prerender = true;
 return Astro.redirect('/research', 307);
 ---
