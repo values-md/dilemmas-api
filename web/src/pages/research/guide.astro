@@ -29,7 +29,9 @@ const guideHtml = renderResearchMarkdown(guideMd, { stripFirstH1: false });
     <div class="markdown-content" set:html={guideHtml}></div>
   </div>
 
-  <style>
+  <style is:global>
+    /* Global because the guide body is rendered via set:html and won't
+       receive Astro's scope-hash attribute — scoped selectors wouldn't match. */
     .markdown-content { line-height: 1.8; }
     .markdown-content h1 { font-size: 2em; margin-top: 0.5em; margin-bottom: 0.5em; border-bottom: 2px solid #d4d4d0; padding-bottom: 0.3em; color: #1a1a1a; }
     .markdown-content h2 { font-size: 1.5em; margin-top: 1.5em; margin-bottom: 0.5em; color: #1a1a1a; }
