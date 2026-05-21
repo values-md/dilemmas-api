@@ -1,0 +1,29 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "values-md-research",
+  // `main` is written into dist/wrangler.json by the @astrojs/cloudflare adapter
+  // at build time. Don't set it here or the Cloudflare vite plugin will fail
+  // pre-build because the file doesn't exist yet.
+  "compatibility_date": "2026-05-20",
+  "compatibility_flags": ["nodejs_compat"],
+
+  "observability": {
+    "enabled": true
+  },
+
+  "limits": {
+    "cpu_ms": 300000
+  },
+
+  // Custom domain — uncomment once the zone is configured and you've run `wrangler login`.
+  // The first deploy with this block will create the DNS record and issue the cert.
+  // "routes": [
+  //   { "pattern": "research-next.values.md", "custom_domain": true }
+  // ]
+
+  // Secrets (set via `wrangler secret put`):
+  //   OPENROUTER_API_KEY
+  //   DATABASE_URL
+  //   INTERNAL_API_KEY
+  //   CF_PURGE_TOKEN (optional, for cache invalidation on writes)
+}

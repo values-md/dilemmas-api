@@ -1,0 +1,10 @@
+# Copy to .dev.vars (gitignored) and fill in real values for local dev.
+# In production these are set via `wrangler secret put <NAME>`.
+
+DATABASE_URL="postgresql://USER:PASS@HOST/DB?sslmode=require&channel_binding=require"
+OPENROUTER_API_KEY="sk-or-..."
+INTERNAL_API_KEY="match-the-current-fly-API_KEY-during-migration"
+
+# Optional. Cloudflare API token with Cache Purge perms, used to invalidate
+# /api/dilemmas after POST /api/generate. Skip until needed.
+# CF_PURGE_TOKEN=""
