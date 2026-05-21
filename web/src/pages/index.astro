@@ -23,7 +23,7 @@ const haveDbUrl = Boolean(env?.DATABASE_URL);
     <ul>
       <li>Adapter: <code>@astrojs/cloudflare</code></li>
       <li>DB binding: {haveDbUrl ? <span class="ok">DATABASE_URL present</span> : <span class="warn">DATABASE_URL not set</span>}</li>
-      <li>Try <a href="/api/_dbping">/api/_dbping</a></li>
+      <li>Try <a href="/api/dbping">/api/dbping</a></li>
     </ul>
   </body>
 </html>
