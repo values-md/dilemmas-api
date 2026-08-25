@@ -23,7 +23,7 @@ export const GET: APIRoute = async ({ request, params }) => {
   if (!participantId) return jsonNoStore({ detail: 'Missing participant_id' }, 400);
 
   try {
-    const db = getDb(env.DATABASE_URL);
+    const db = getDb(env.DB);
     const rows = await db
       .select()
       .from(valuesMd)

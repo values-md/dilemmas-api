@@ -12,9 +12,7 @@
     "preview": "wrangler dev",
     "deploy": "astro build && wrangler deploy --config dist/server/wrangler.json",
     "typecheck": "astro check",
-    "db:pull": "drizzle-kit pull",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate",
     "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
@@ -33,12 +31,5 @@
     "drizzle-kit": "^0.31.10",
     "tsx": "^4.19.0",
     "wrangler": "^4.93.1"
-  },
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "esbuild",
-      "sharp",
-      "workerd"
-    ]
   }
 }

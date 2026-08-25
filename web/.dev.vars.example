@@ -1,9 +1,11 @@
 # Copy to .dev.vars (gitignored) and fill in real values for local dev.
 # In production these are set via `wrangler secret put <NAME>`.
+#
+# The database is the D1 binding `DB` (see wrangler.jsonc) — no DATABASE_URL.
+# Seed the local D1 per README.md "Database".
 
-DATABASE_URL="postgresql://USER:PASS@HOST/DB?sslmode=require&channel_binding=require"
 OPENROUTER_API_KEY="sk-or-..."
-INTERNAL_API_KEY="match-the-current-fly-API_KEY-during-migration"
+INTERNAL_API_KEY="same-value-as-the-Next.js-side-RESEARCH_API_KEY"
 
 # Optional. Cloudflare API token with Cache Purge perms, used to invalidate
 # /api/dilemmas after POST /api/generate. Skip until needed.

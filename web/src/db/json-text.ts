@@ -10,7 +10,7 @@
  * Caveat: don't combine with .default() — see drizzle-orm#818. Set defaults
  * in application code instead.
  */
-import { customType } from 'drizzle-orm/pg-core';
+import { customType } from 'drizzle-orm/sqlite-core';
 
 export const jsonText = <T>(name: string) =>
   customType<{ data: T; driverData: string }>({

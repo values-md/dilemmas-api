@@ -48,7 +48,7 @@ export const POST: APIRoute = async ({ request }) => {
   }
 
   const modelId = body.model_id ?? DEFAULT_MODEL;
-  const db = getDb(env.DATABASE_URL);
+  const db = getDb(env.DB);
 
   // ---- Cache check ------------------------------------------------------
   if (!body.force_regenerate) {

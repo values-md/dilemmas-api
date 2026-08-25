@@ -12,12 +12,12 @@ import { dilemmas, judgements, valuesMd, valuesMdHistory } from '@/db/schema';
 export const GET: APIRoute = async () => {
   const t0 = Date.now();
   try {
-    const db = getDb(env.DATABASE_URL);
+    const db = getDb(env.DB);
     const [d, j, v, h] = await Promise.all([
-      db.select({ n: sql<number>`count(*)::int` }).from(dilemmas),
-      db.select({ n: sql<number>`count(*)::int` }).from(judgements),
-      db.select({ n: sql<number>`count(*)::int` }).from(valuesMd),
-      db.select({ n: sql<number>`count(*)::int` }).from(valuesMdHistory),
+      db.select({ n: sql<number>`count(*)` }).from(dilemmas),
+      db.select({ n: sql<number>`count(*)` }).from(judgements),
+      db.select({ n: sql<number>`count(*)` }).from(valuesMd),
+      db.select({ n: sql<number>`count(*)` }).from(valuesMdHistory),
     ]);
 
     const body = {

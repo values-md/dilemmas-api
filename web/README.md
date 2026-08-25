@@ -8,9 +8,17 @@ for the full plan and rationale.
 
 - **Astro 6** SSR (`output: 'server'`) via `@astrojs/cloudflare`
 - **Cloudflare Workers** runtime (Workers Assets for static)
-- **Drizzle ORM** (`drizzle-orm/neon-http`) against the existing **Neon Postgres**
+- **Drizzle ORM** (`drizzle-orm/d1`) against **Cloudflare D1** (`values-md-research-db`)
 - **Zod 4** for input/output contracts (with native `z.toJSONSchema()` for LLM structured output)
 - **pnpm** for package management
+
+> **DB history:** originally Neon Postgres (kept from the Fly.io era). Migrated to
+> D1 in Aug 2026 — the project is an archive with a frozen 17 MB dataset, and the
+> constant bot traffic kept the Neon compute awake ~50% of the time (~370
+> CU-hours/month, the single biggest consumer in the org). All data was exported
+> with timestamps converted to epoch-ms integers; API response shapes are
+> unchanged. The Neon project (`winter-recipe-31937114`) can be deleted once the
+> rollback window has passed.
 
 ## Local dev
 
@@ -37,32 +45,32 @@ For the first deploy you need:
 
 ```bash
 wrangler login
-wrangler secret put DATABASE_URL
 wrangler secret put OPENROUTER_API_KEY
 wrangler secret put INTERNAL_API_KEY
 ```
+
+The database is the D1 binding `DB` in `wrangler.jsonc` — no connection-string
+secret needed.
 
 The custom domain (`research-next.values.md` initially, then `research.values.md`)
 is configured in `wrangler.jsonc` — uncomment the `routes` block once ready.
 
 ## Database
 
-We **do not** own the schema initially — it's defined by the Python side at
-`../src/dilemmas/models/db.py` and managed by Alembic until cutover. To
-introspect the existing tables into a Drizzle schema:
+Cloudflare D1: `values-md-research-db` (id `ec0a8bfb-93d9-4b39-905c-304fa1ec14cc`),
+bound as `DB`. `src/db/schema.ts` (drizzle sqlite-core) is the source of truth;
+timestamps are INTEGER epoch milliseconds (UTC) surfaced as JS `Date`s.
+
+There are no managed migrations — the archive's data was imported once from
+Neon. If the schema ever changes, generate SQL with drizzle-kit and apply it:
 
 ```bash
-# DATABASE_URL must be set in your shell or in .dev.vars
-pnpm db:pull
+pnpm exec wrangler d1 execute values-md-research-db --remote --file=<migration.sql>
 ```
 
-After cutover, schema changes go through Drizzle:
-
-```bash
-# edit src/db/schema.ts, then:
-pnpm db:generate                  # produces SQL under drizzle/
-pnpm db:migrate                   # applies pending migrations
-```
+For local dev, seed the local D1 the same way with `--local` (ask for the
+`d1_import.sql` dump or re-export from the D1 remote with
+`wrangler d1 export values-md-research-db --remote --output=dump.sql`).
 
 ## What lives where
 

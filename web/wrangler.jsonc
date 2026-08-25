@@ -13,6 +13,13 @@
 	"observability": {
 		"enabled": true
 	},
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_name": "values-md-research-db",
+			"database_id": "ec0a8bfb-93d9-4b39-905c-304fa1ec14cc"
+		}
+	],
 	"limits": {
 		"cpu_ms": 300000
 	},
@@ -25,7 +32,7 @@
 	]
 	// Secrets (set via `wrangler secret put`):
 	//   OPENROUTER_API_KEY
-	//   DATABASE_URL
 	//   INTERNAL_API_KEY
 	//   CF_PURGE_TOKEN (optional, for cache invalidation on writes)
+	// (DATABASE_URL retired 2026-08: data migrated from Neon to the D1 binding above)
 }

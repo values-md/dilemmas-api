@@ -21,7 +21,7 @@ const page = Math.max(1, parseInt(url.searchParams.get('page') ?? '1', 10) || 1)
 const limit = 50;
 const offset = (page - 1) * limit;
 
-const db = getDb(env.DATABASE_URL);
+const db = getDb(env.DB);
 
 const filters = [
   search ? sql`${judgements.data} LIKE ${`%${search}%`}` : undefined,
@@ -33,7 +33,7 @@ const filters = [
 const where = filters.length > 0 ? and(...filters) : undefined;
 
 const [totalRow, rows] = await Promise.all([
-  db.select({ n: sql<number>`count(*)::int` }).from(judgements).where(where as any),
+  db.select({ n: sql<number>`count(*)` }).from(judgements).where(where as any),
   db
     .select({
       id: judgements.id,
@@ -47,7 +47,7 @@ const [totalRow, rows] = await Promise.all([
     })
     .from(judgements)
     .where(where as any)
-    .orderBy(desc(judgements.createdAt))
+    .orderBy(desc(judgements.createdAt), asc(judgements.id))
     .limit(limit)
     .offset(offset),
 ]);

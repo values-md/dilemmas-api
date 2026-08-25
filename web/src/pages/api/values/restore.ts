@@ -36,7 +36,7 @@ export const POST: APIRoute = async ({ request }) => {
     return jsonNoStore({ detail: msg }, 400);
   }
 
-  const db = getDb(env.DATABASE_URL);
+  const db = getDb(env.DB);
 
   const restoreRows = await db
     .select()

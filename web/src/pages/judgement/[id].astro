@@ -15,7 +15,7 @@ import type { DilemmaData, JudgementData } from '@/db/types';
 const id = Astro.params.id;
 if (!id) return new Response('Bad request', { status: 400 });
 
-const db = getDb(env.DATABASE_URL);
+const db = getDb(env.DB);
 const jrows = await db.select().from(judgements).where(eq(judgements.id, id)).limit(1);
 const jrow = jrows[0];
 if (!jrow) {

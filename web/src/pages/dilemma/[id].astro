@@ -18,7 +18,7 @@ import { dilemmas } from '@/db/schema';
 const id = Astro.params.id;
 if (!id) return new Response('Bad request', { status: 400 });
 
-const db = getDb(env.DATABASE_URL);
+const db = getDb(env.DB);
 const rows = await db.select().from(dilemmas).where(eq(dilemmas.id, id)).limit(1);
 const row = rows[0];
 

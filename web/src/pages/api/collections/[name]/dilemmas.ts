@@ -28,7 +28,7 @@ export const GET: APIRoute = async ({ params }) => {
 
   try {
     const rows = await memo(`collection:${name}`, 60 * 60 * 1000, async () => {
-      const db = getDb(env.DATABASE_URL);
+      const db = getDb(env.DB);
       return db.select({ data: dilemmas.data }).from(dilemmas).where(eq(dilemmas.collection, name));
     });
 
